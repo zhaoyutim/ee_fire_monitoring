@@ -37,14 +37,15 @@ def main():
             plt.show()
 
 def overview_backscatter():
-    land_covers = ['broadleaf', 'needle', 'grasslands', 'shrublands', 'savannas']
+    land_covers = ['broadleaf', 'needle', 'grasslands', 'shrublands', 'savannas', 'mixed']
     polarization = ['HH', 'HV', 'HV-HH']
-    title=['(a)', '(b)', '(c)']
-    for i in range(3):
+    title=['(a)', '(b)', '(c)', '(d)', '(e)', '(f)']
+
+    for j, land_cover in enumerate(land_covers):
         arr_list = []
         labels = []
-        for land_cover in land_covers:
-            file_list = glob.glob('palsar/'+land_cover+'/*/*.tif')
+        for i in range(3):
+            file_list = glob.glob('palsar_evaluate/'+land_cover+'/*.tif')
             burned_arr_list = []
             unburned_arr_list = []
             for file in file_list:
@@ -55,19 +56,19 @@ def overview_backscatter():
                 unburned_samples = np.random.choice(unburned_arr, 5000)
                 burned_arr_list.append(burned_samples)
                 unburned_arr_list.append(unburned_samples)
-            labels.append('burned_' + land_cover)
-            labels.append('unburned_' + land_cover)
+            labels.append('Burned\n' + land_cover.capitalize() + '\n' + polarization[i])
+            labels.append('Unburned\n' + land_cover.capitalize() + '\n' + polarization[i])
             burned_cover_arr = np.concatenate(burned_arr_list)
             unburned_cover_arr = np.concatenate(unburned_arr_list)
             arr_list.append(burned_cover_arr)
             arr_list.append(unburned_cover_arr)
 
         plt.rc('font', size=15)
-        plt.figure(figsize=(30,8))
+        plt.figure(figsize=(12,8))
 
         plt.boxplot(arr_list, labels=labels, showfliers=False)
-        plt.title(title[i])
-        plt.savefig('burned_unburned' + ' ' + polarization[i], bbox_inches='tight')
+        plt.title(title[j])
+        plt.savefig('figure_eva/burned_unburned' + ' ' + land_cover + '_eva', bbox_inches='tight')
         plt.show()
 
 if __name__=='__main__':

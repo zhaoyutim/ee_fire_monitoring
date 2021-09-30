@@ -18,7 +18,7 @@ def write_tiff(file_path, arr, profile):
             dst.write(arr.astype(rasterio.float32))
 
 
-def removeOutliers(x, outlierConstant):
+def remove_outliers(x, outlierConstant):
     upper_quartile = np.percentile(x, 75)
     lower_quartile = np.percentile(x, 25)
     print(upper_quartile, lower_quartile)
@@ -51,7 +51,7 @@ def dataset_gen():
         tif_array = np.nan_to_num(tif_array)
         data_output = np.zeros((tif_array.shape[0], tif_array.shape[1], 4))
         for i in range(3):
-            data_output[:,:,i] = removeOutliers(tif_array[:,:,i], 1)
+            data_output[:,:,i] = remove_outliers(tif_array[:,:,i], 1)
         img = (tif_array[:,:,:3]-tif_array[:,:,:3].min())/(tif_array[:,:,:3].max()-tif_array[:,:,:3].min())
         plt.imshow(img)
         plt.show()
@@ -79,12 +79,14 @@ def dataset_gen():
     return dataset_train, dataset_test
 
 def dataset_eva_gen():
-    file_list = glob.glob('palsar_evaluate/22994616_2020/*.tif')
+    file_list = glob.glob('palsar_evaluate/*.tif')
     overlap = 128
-    th = [(0.2, 0), (0.1, 1)]
+    th = [(0.25, 0), (0.1, 1), (0.1, 0), (-0.05, 1), (0.1, 1), (0.2, 0), (0.25, 0), (0, 1), (0, 1)]
+    # idx = 7
     for idx in range(len(file_list)):
         file_name = file_list[idx]
-        id = file_name[16:24]
+        landcover = file_name.split('/')[1][:-19]
+        id = file_name.split('/')[1][-18:-10]
         dataset_eva_list = []
         tif_array, _ = read_tiff(file_name)
         _, size_x, size_y = tif_array.shape
@@ -93,7 +95,7 @@ def dataset_eva_gen():
         data_output = np.zeros((tif_array.shape[0], tif_array.shape[1], 4))
         img = np.zeros((tif_array.shape[0], tif_array.shape[1], 3))
         for i in range(3):
-            data_output[:,:,i] = removeOutliers(tif_array[:,:,i], 1)
+            data_output[:,:,i] = remove_outliers(tif_array[:,:,i], 1)
             img[:,:,i] = (tif_array[:,:,i]-tif_array[:,:,i].min())/(tif_array[:,:,i].max()-tif_array[:,:,i].min())
         plt.imshow(img)
         plt.show()
@@ -113,8 +115,8 @@ def dataset_eva_gen():
                 if (i * 128) + 256 < size_x and (j * 128) + 256 < size_y:
                     dataset_eva_list.append(data_output[i * 128 : (i * 128) + 256, j * 128 : (j * 128) + 256, :])
         dataset_eva = np.stack(dataset_eva_list, axis=0)
-        np.save('dataset/proj2_evaluate'+id+str(data_index_x)+str(data_index_y)+'.npy', dataset_eva)
+        np.save('dataset/'+landcover+id+'.npy', dataset_eva)
 
 if __name__ == '__main__':
-    # dataset_gen()
+    dataset_gen()
     dataset_eva_gen()
