@@ -3,7 +3,13 @@ import glob
 import matplotlib.pyplot as plt
 import numpy as np
 import rasterio
+import yaml
 
+with open("dataset_config/land_cover_id.yaml", "r", encoding="utf8") as f:
+    config = yaml.load(f, Loader=yaml.FullLoader)
+
+with open("dataset_config/land_cover_id_eva.yaml", "r", encoding="utf8") as f:
+    config_eva = yaml.load(f, Loader=yaml.FullLoader)
 
 def read_tiff(file_path):
     with rasterio.open(file_path, 'r') as reader:
@@ -35,15 +41,19 @@ def dataset_gen():
     file_list.sort()
     dataset_train_list = []
     dataset_test_list = []
-    th=[(0.1, 1), (0.2, 1), (0.2, 1), (0.2, 1), (0.15, 0),
-        (0.05, 1), (0.15, 0), (0.2, 1), (0.1, 0), (0.1, 1),
-        (0.3, 0), (0.4, 1), (-0.2, 1),(-0.2, 1), (0.3, 1), (0.2, 1), (0.1, 1),
-        (0.2, 1),
-        (0.15, 1), (0.6, 1), (0.45, 1), (0.1, 1), (-0.1, 1),
-        (0, 1), (0.3, 1)]
+    # th=[(0.1, 1), (0.2, 1), (0.2, 1), (0.2, 1), (0.15, 0),
+    #     (0.05, 1), (0.15, 0), (0.2, 1), (0.1, 0), (0.1, 1),
+    #     (0.3, 0), (0.4, 1), (-0.2, 1),(-0.2, 1), (0.3, 1), (0.2, 1), (0.1, 1),
+    #     (0.2, 1),
+    #     (0.15, 1), (0.6, 1), (0.45, 1), (0.1, 1), (-0.1, 1),
+    #     (0, 1), (0.3, 1)]
     for idx in range(len(file_list)):
         file_name = file_list[idx]
         print(file_name)
+        fire_id = file_name.split('/')[2][:-5]
+        landcover = file_name.split('/')[1]
+        th = config.get(landcover).get(int(fire_id)).get('th')
+        bbox = config.get(landcover).get(int(fire_id)).get('bbox')
         tif_array, _ = read_tiff(file_name)
 
         _, size_x, size_y = tif_array.shape
@@ -55,13 +65,13 @@ def dataset_gen():
         img = (tif_array[:,:,:3]-tif_array[:,:,:3].min())/(tif_array[:,:,:3].max()-tif_array[:,:,:3].min())
         plt.imshow(img)
         plt.show()
-        if th[idx][1] == 1:
-            data_output[:,:,3] = np.logical_and(tif_array[:,:,4]>th[idx][0], tif_array[:,:,3]>0)
+        if bbox == 1:
+            data_output[:,:,3] = np.logical_and(tif_array[:,:,4]>th, tif_array[:,:,3]>0)
         else:
-            data_output[:, :, 3] = tif_array[:, :, 4] > th[idx][0]
+            data_output[:, :, 3] = tif_array[:, :, 4] > th
         img = data_output[:,:,3]
-        # plt.imshow(img)
-        # plt.show()
+        plt.imshow(img)
+        plt.show()
         data_index_y = size_y // 256
         data_index_x = size_x // 256
         split_index = data_index_x * data_index_y * 0.8
@@ -79,15 +89,18 @@ def dataset_gen():
     return dataset_train, dataset_test
 
 def dataset_eva_gen():
-    file_list = glob.glob('palsar_evaluate/*.tif')
+    file_list = glob.glob('palsar_eva/*/*/*.tif')
     overlap = 128
-    th = [(0.25, 0), (0.1, 1), (0.1, 0), (-0.05, 1), (0.1, 1), (0.2, 0), (0.25, 0), (0, 1), (0, 1)]
+    th = [(0.3, 1), (0.1, 1), (0.1, 0), (-0.05, 1), (0.1, 1), (0.2, 0), (0.25, 0), (0, 1), (0, 1)]
     # idx = 7
     for idx in range(len(file_list)):
         file_name = file_list[idx]
-        landcover = file_name.split('/')[1][:-19]
-        id = file_name.split('/')[1][-18:-10]
         dataset_eva_list = []
+        fire_id = file_name.split('/')[2][:-5]
+        landcover = file_name.split('/')[1]
+        print(fire_id)
+        th = config_eva.get(landcover).get(int(fire_id)).get('th')
+        bbox = config_eva.get(landcover).get(int(fire_id)).get('bbox')
         tif_array, _ = read_tiff(file_name)
         _, size_x, size_y = tif_array.shape
         tif_array = tif_array.transpose((1, 2, 0))
@@ -99,12 +112,12 @@ def dataset_eva_gen():
             img[:,:,i] = (tif_array[:,:,i]-tif_array[:,:,i].min())/(tif_array[:,:,i].max()-tif_array[:,:,i].min())
         plt.imshow(img)
         plt.show()
-        if th[idx][1] == 1:
-            data_output[:, :, 3] = np.logical_and(tif_array[:, :, 4] > th[idx][0], tif_array[:, :, 3] > 0)
+        if bbox == 1:
+            data_output[:, :, 3] = np.logical_and(tif_array[:, :, 4] > th, tif_array[:, :, 3] > 0)
         else:
-            data_output[:, :, 3] = tif_array[:, :, 4] > th[idx][0]
+            data_output[:, :, 3] = tif_array[:, :, 4] > th
         plt.title('c')
-        plt.imshow(data_output[:,:,3])
+        plt.imshow(data_output[:,:,3],cmap='Reds')
         plt.savefig('label', bbox_inches='tight')
         plt.show()
 
@@ -115,8 +128,8 @@ def dataset_eva_gen():
                 if (i * 128) + 256 < size_x and (j * 128) + 256 < size_y:
                     dataset_eva_list.append(data_output[i * 128 : (i * 128) + 256, j * 128 : (j * 128) + 256, :])
         dataset_eva = np.stack(dataset_eva_list, axis=0)
-        np.save('dataset/'+landcover+id+'.npy', dataset_eva)
+        np.save('dataset/'+landcover+fire_id+'x'+str(data_index_x)+'y'+str(data_index_y)+'.npy', dataset_eva)
 
 if __name__ == '__main__':
-    dataset_gen()
+    # dataset_gen()
     dataset_eva_gen()

@@ -121,7 +121,7 @@ class palsar:
                         print('Start with image task (id: {}).'.format('Image Export:' + land_cover + '_' + id + '_' + str(year)))
 
     def download_to_gcloud_evaluate(self):
-        land_covers = ['shrublands', 'savannas', 'mixed']
+        land_covers = ['needle', 'broadleaf', 'grasslands', 'shrublands', 'savannas', 'mixed']
         for land_cover in land_covers:
             id_list = config_eva.get(land_cover)
             polygons = ee.FeatureCollection('JRC/GWIS/GlobFire/v2/FinalPerimeters').filter(ee.Filter.inList('Id', id_list))
@@ -193,7 +193,7 @@ class palsar:
                         composite = ee.Image([logrt_HH, logrt_HV, logrtHvhh, landAreaImg.gt(0), dnbr])
 
                         id = str(poly.get('Id').getInfo())
-                        dir = 'palsar' + '/' + land_cover + '/' + id + '_' + str(year) + '/' + str(year)
+                        dir = 'palsar_eva/' + land_cover + '/' + id + '_' + str(year) + '/' + str(year)
                         image_task = ee.batch.Export.image.toCloudStorage(
                             image=composite.toFloat(),
                             description='Image Export:' + land_cover + '_' + id + '_' + str(year),
@@ -214,7 +214,7 @@ class palsar:
         storage_client = storage.Client()
 
         bucket = storage_client.bucket('ai4wildfire')
-        blobs = bucket.list_blobs(prefix='palsar')
+        blobs = bucket.list_blobs(prefix='palsar_eva')
         for blob in blobs:
             if blob.time_created.date() < datetime.date.today()-datetime.timedelta(days=2):
                 continue
