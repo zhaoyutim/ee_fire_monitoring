@@ -49,7 +49,7 @@ def dice_coef(y_true, y_pred):
 
 def wandb_config(model_name, backbone):
     wandb.login()
-    wandb.init(project='proj2_'+str(model_name)+'_'+str(backbone), entity="zhaoyutim")
+    wandb.init(project='proj2_palsar', id=str(model_name)+'_'+str(backbone), entity="zhaoyutim")
     # wandb.config = {
     #   "learning_rate": learning_rate,
     #   "weight_decay": weight_decay,
