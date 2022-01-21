@@ -165,6 +165,6 @@ if __name__=='__main__':
             validation_data=val_dataset,
             validation_steps=validation_steps,
             epochs=MAX_EPOCHS,
-            # callbacks=[WandbCallback()],
+            callbacks=[WandbCallback()],
         )
         model.save('/geoinfo_vol1/zhao2/proj2_model/proj2_'+model_name+'_pretrained_'+backbone)
