@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import rasterio
 import yaml
+from sklearn import preprocessing
 
 with open("dataset_config/land_cover_id.yaml", "r", encoding="utf8") as f:
     config = yaml.load(f, Loader=yaml.FullLoader)
@@ -36,11 +37,16 @@ def remove_outliers(x, outlierConstant):
 
     return result
 
+def standardization(x):
+    scaler = preprocessing.StandardScaler().fit(x)
+    x = scaler.transform(x)
+    return x
+
 def dataset_gen():
     file_list = glob.glob('palsar/*/*/*.tif')
     file_list.sort()
     dataset_train_list = []
-    dataset_test_list = []
+    # dataset_test_list = []
     # th=[(0.1, 1), (0.2, 1), (0.2, 1), (0.2, 1), (0.15, 0),
     #     (0.05, 1), (0.15, 0), (0.2, 1), (0.1, 0), (0.1, 1),
     #     (0.3, 0), (0.4, 1), (-0.2, 1),(-0.2, 1), (0.3, 1), (0.2, 1), (0.1, 1),
@@ -62,6 +68,7 @@ def dataset_gen():
         data_output = np.zeros((tif_array.shape[0], tif_array.shape[1], 4))
         for i in range(3):
             data_output[:,:,i] = remove_outliers(tif_array[:,:,i], 1)
+            data_output[:,:,i] = standardization(data_output[:,:,i])
         img = (tif_array[:,:,:3]-tif_array[:,:,:3].min())/(tif_array[:,:,:3].max()-tif_array[:,:,:3].min())
         plt.imshow(img)
         plt.show()
@@ -77,16 +84,13 @@ def dataset_gen():
         split_index = data_index_x * data_index_y * 0.8
         for i in range(data_index_x):
             for j in range(data_index_y):
-                if i * data_index_y + j >= split_index:
-                    dataset_test_list.append(data_output[i*256:(i+1)*256, j*256:(j+1)*256, :])
-                else:
-                    dataset_train_list.append(data_output[i * 256:(i + 1) * 256, j * 256:(j + 1) * 256, :])
+                dataset_train_list.append(data_output[i * 256:(i + 1) * 256, j * 256:(j + 1) * 256, :])
 
     dataset_train = np.stack(dataset_train_list, axis=0)
-    dataset_test = np.stack(dataset_test_list, axis=0)
+    # dataset_test = np.stack(dataset_test_list, axis=0)
     np.save('dataset/proj2_train.npy', dataset_train)
-    np.save('dataset/proj2_test.npy', dataset_test)
-    return dataset_train, dataset_test
+    # np.save('dataset/proj2_test.npy', dataset_test)
+    return dataset_train
 
 def dataset_eva_gen():
     file_list = glob.glob('palsar_eva/*/*/*.tif')
@@ -109,7 +113,8 @@ def dataset_eva_gen():
         img = np.zeros((tif_array.shape[0], tif_array.shape[1], 3))
         for i in range(3):
             data_output[:,:,i] = remove_outliers(tif_array[:,:,i], 1)
-            img[:,:,i] = (tif_array[:,:,i]-tif_array[:,:,i].min())/(tif_array[:,:,i].max()-tif_array[:,:,i].min())
+            data_output[:,:,i] = standardization(data_output[:,:,i])
+        img = (tif_array[:,:,:3]-tif_array[:,:,:3].min())/(tif_array[:,:,:3].max()-tif_array[:,:,:3].min())
         plt.imshow(img)
         plt.show()
         if bbox == 1:
@@ -131,5 +136,5 @@ def dataset_eva_gen():
         np.save('dataset/'+landcover+fire_id+'x'+str(data_index_x)+'y'+str(data_index_y)+'.npy', dataset_eva)
 
 if __name__ == '__main__':
-    # dataset_gen()
+    dataset_gen()
     dataset_eva_gen()

@@ -14,11 +14,11 @@ from keras_unet_collection import models
 def get_dateset(batch_size):
 
     train_dataset = np.load('/geoinfo_vol1/zhao2/proj2_dataset/proj2_train.npy')
-    val_dataset = np.load('/geoinfo_vol1/zhao2/proj2_dataset/proj2_test.npy')
+    # val_dataset = np.load('/geoinfo_vol1/zhao2/proj2_dataset/proj2_test.npy')
     print(train_dataset.shape)
     y_dataset = train_dataset[:,:,:,3]>0
-    y_dataset_val = val_dataset[:,:,:,3]>0
-    x_train, x_val, y_train, y_val = train_dataset[:,:,:,:3], val_dataset[:,:,:,:3], y_dataset, y_dataset_val
+    # y_dataset_val = val_dataset[:,:,:,3]>0
+    x_train, x_val, y_train, y_val = train_test_split(train_dataset[:,:,:,:3], y_dataset, test_size=0.2)
     def make_generator(inputs, labels):
         def _generator():
             for input, label in zip(inputs, labels):
