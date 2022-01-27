@@ -46,13 +46,6 @@ def dataset_gen():
     file_list = glob.glob('palsar/*/*/*.tif')
     file_list.sort()
     dataset_train_list = []
-    # dataset_test_list = []
-    # th=[(0.1, 1), (0.2, 1), (0.2, 1), (0.2, 1), (0.15, 0),
-    #     (0.05, 1), (0.15, 0), (0.2, 1), (0.1, 0), (0.1, 1),
-    #     (0.3, 0), (0.4, 1), (-0.2, 1),(-0.2, 1), (0.3, 1), (0.2, 1), (0.1, 1),
-    #     (0.2, 1),
-    #     (0.15, 1), (0.6, 1), (0.45, 1), (0.1, 1), (-0.1, 1),
-    #     (0, 1), (0.3, 1)]
     for idx in range(len(file_list)):
         file_name = file_list[idx]
         print(file_name)
@@ -68,35 +61,30 @@ def dataset_gen():
         data_output = np.zeros((tif_array.shape[0], tif_array.shape[1], 4))
         for i in range(3):
             data_output[:,:,i] = remove_outliers(tif_array[:,:,i], 1)
-            data_output[:,:,i] = standardization(data_output[:,:,i])
+            data_output[:,:,i] = np.nan_to_num(standardization(data_output[:,:,i]))
         img = (tif_array[:,:,:3]-tif_array[:,:,:3].min())/(tif_array[:,:,:3].max()-tif_array[:,:,:3].min())
         plt.imshow(img)
         plt.show()
         if bbox == 1:
-            data_output[:,:,3] = np.logical_and(tif_array[:,:,4]>th, tif_array[:,:,3]>0)
+            data_output[:, :, 3] = np.logical_and(tif_array[:,:,4]>th, tif_array[:,:,3]>0)
         else:
             data_output[:, :, 3] = tif_array[:, :, 4] > th
-        img = data_output[:,:,3]
+        img = data_output[:, :, 3]
         plt.imshow(img)
         plt.show()
         data_index_y = size_y // 256
         data_index_x = size_x // 256
-        split_index = data_index_x * data_index_y * 0.8
         for i in range(data_index_x):
             for j in range(data_index_y):
                 dataset_train_list.append(data_output[i * 256:(i + 1) * 256, j * 256:(j + 1) * 256, :])
 
     dataset_train = np.stack(dataset_train_list, axis=0)
-    # dataset_test = np.stack(dataset_test_list, axis=0)
     np.save('dataset/proj2_train.npy', dataset_train)
-    # np.save('dataset/proj2_test.npy', dataset_test)
     return dataset_train
 
 def dataset_eva_gen():
     file_list = glob.glob('palsar_eva/*/*/*.tif')
     overlap = 128
-    th = [(0.3, 1), (0.1, 1), (0.1, 0), (-0.05, 1), (0.1, 1), (0.2, 0), (0.25, 0), (0, 1), (0, 1)]
-    # idx = 7
     for idx in range(len(file_list)):
         file_name = file_list[idx]
         dataset_eva_list = []
@@ -113,7 +101,7 @@ def dataset_eva_gen():
         img = np.zeros((tif_array.shape[0], tif_array.shape[1], 3))
         for i in range(3):
             data_output[:,:,i] = remove_outliers(tif_array[:,:,i], 1)
-            data_output[:,:,i] = standardization(data_output[:,:,i])
+            data_output[:,:,i] = np.nan_to_num(standardization(data_output[:,:,i]))
         img = (tif_array[:,:,:3]-tif_array[:,:,:3].min())/(tif_array[:,:,:3].max()-tif_array[:,:,:3].min())
         plt.imshow(img)
         plt.show()
