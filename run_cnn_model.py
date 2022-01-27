@@ -118,11 +118,10 @@ if __name__=='__main__':
             model = tf.keras.Model(input, output_resize, name=model_name)
         elif model_name == 'swinunet':
             input = tf.keras.Input(shape=(None, None, 3))
-            conv1 = tf.keras.layers.Conv2D(3, 3, activation = 'linear', padding = 'same', kernel_initializer = 'he_normal')(input)
             basemodel = models.swin_unet_2d((256, 256, 3), filter_num_begin=64, n_labels=1, depth=4, stack_num_down=2, stack_num_up=2,
                                         patch_size=(2, 2), num_heads=[4, 8, 8, 8], window_size=[4, 2, 2, 2], num_mlp=512,
                                         output_activation='Sigmoid', shift_window=True, name='swin_unet')
-            output = basemodel(conv1)
+            output = basemodel(input)
             model = tf.keras.Model(input, output, name=model_name)
         elif model_name == 'transunet':
             input = tf.keras.Input(shape=(None, None, 3))
