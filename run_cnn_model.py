@@ -66,7 +66,7 @@ if __name__=='__main__':
     parser.add_argument('-p', type=str, help='Load trained weights')
     parser.add_argument('-b', type=int, help='batch size')
     parser.add_argument('-bb', type=str, help='backbone')
-    parser.add_argument('-lr', type=str, help='learning rate')
+    parser.add_argument('-lr', type=float, help='learning rate')
 
     args = parser.parse_args()
     model_name = args.m
