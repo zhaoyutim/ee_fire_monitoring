@@ -50,15 +50,15 @@ def dice_coef(y_true, y_pred):
 
 def wandb_config(model_name, backbone):
     wandb.login()
-    wandb.init(project='proj2_palsar', id=str(model_name)+'_'+str(backbone), entity="zhaoyutim")
-    # wandb.config = {
-    #   "learning_rate": learning_rate,
-    #   "weight_decay": weight_decay,
-    #   "epochs": MAX_EPOCHS,
-    #   "batch_size": batch_size,
-    #   "num_heads":num_heads,
-    #   "transformer_layers": transformer_layers
-    # }
+    wandb.init(project='proj2_palsar', entity="zhaoyutim")
+    wandb.config = {
+      "learning_rate": learning_rate,
+      "weight_decay": weight_decay,
+      "epochs": MAX_EPOCHS,
+      "batch_size": batch_size,
+      "model_name":model_name,
+      "backbone": backbone
+    }
 
 if __name__=='__main__':
     parser = argparse.ArgumentParser(description='Process some integers.')
