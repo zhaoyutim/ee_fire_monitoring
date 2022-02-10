@@ -66,6 +66,7 @@ if __name__=='__main__':
     parser.add_argument('-p', type=str, help='Load trained weights')
     parser.add_argument('-b', type=int, help='batch size')
     parser.add_argument('-bb', type=str, help='backbone')
+    parser.add_argument('-lr', type=str, help='learning rate')
 
     args = parser.parse_args()
     model_name = args.m
@@ -74,8 +75,8 @@ if __name__=='__main__':
     sm.set_framework('tf.keras')
     batch_size=args.b
     MAX_EPOCHS=100
-    learning_rate = 0.0001
-    weight_decay = 0.00001
+    learning_rate = args.lr
+    weight_decay = learning_rate/10
 
     train_dataset, val_dataset, steps_per_epoch, validation_steps = get_dateset(batch_size)
 
