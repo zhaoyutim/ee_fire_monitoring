@@ -11,7 +11,6 @@ from segmentation_models.losses import bce_jaccard_loss
 from segmentation_models.metrics import iou_score, f1_score
 from segmentation_models import Unet, Linknet, PSPNet, FPN
 from keras_unet_collection import models
-from tensorflow.keras.mixed_precision import experimental as mixed_precision
 
 def get_dateset(batch_size):
 
@@ -30,9 +29,9 @@ def get_dateset(batch_size):
 
 
     train_dataset = tf.data.Dataset.from_generator(make_generator(x_train, y_train),
-                                                   (tf.float16, tf.float16))
+                                                   (tf.float32, tf.float32))
     val_dataset = tf.data.Dataset.from_generator(make_generator(x_val, y_val),
-                                                 (tf.float16, tf.float16))
+                                                 (tf.float32, tf.float32))
 
     train_dataset = train_dataset.shuffle(batch_size).repeat(MAX_EPOCHS).batch(batch_size)
     val_dataset = val_dataset.shuffle(batch_size).repeat(MAX_EPOCHS).batch(batch_size)
@@ -68,8 +67,6 @@ if __name__=='__main__':
     parser.add_argument('-b', type=int, help='batch size')
     parser.add_argument('-bb', type=str, help='backbone')
     parser.add_argument('-lr', type=float, help='learning rate')
-    policy = mixed_precision.Policy('mixed_float16')
-    mixed_precision.set_policy(policy)
     args = parser.parse_args()
     model_name = args.m
     load_weights = args.p
