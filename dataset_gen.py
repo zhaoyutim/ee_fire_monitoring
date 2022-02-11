@@ -12,6 +12,7 @@ with open("dataset_config/land_cover_id.yaml", "r", encoding="utf8") as f:
 with open("dataset_config/land_cover_id_eva.yaml", "r", encoding="utf8") as f:
     config_eva = yaml.load(f, Loader=yaml.FullLoader)
 
+
 def read_tiff(file_path):
     with rasterio.open(file_path, 'r') as reader:
         profile = reader.profile
@@ -33,14 +34,20 @@ def remove_outliers(x, outlierConstant):
     quartileSet = (lower_quartile - IQR, upper_quartile + IQR)
     print(quartileSet)
 
-    result = x*(x >= quartileSet[0])*(x <= quartileSet[1])
+    result = x * (x >= quartileSet[0]) * (x <= quartileSet[1])
 
     return result
+
 
 def standardization(x):
     scaler = preprocessing.StandardScaler().fit(x)
     x = scaler.transform(x)
     return x
+
+
+def normalization(x):
+    return 255*(x-np.nanmin(x))/(np.nanmax(x)-np.nanmin(x))
+
 
 def dataset_gen():
     file_list = glob.glob('palsar/*/*/*.tif')
@@ -60,13 +67,14 @@ def dataset_gen():
         tif_array = np.nan_to_num(tif_array)
         data_output = np.zeros((tif_array.shape[0], tif_array.shape[1], 4))
         for i in range(3):
-            data_output[:,:,i] = remove_outliers(tif_array[:,:,i], 1)
-            data_output[:,:,i] = np.nan_to_num(standardization(data_output[:,:,i]))
-        img = (tif_array[:,:,:3]-tif_array[:,:,:3].min())/(tif_array[:,:,:3].max()-tif_array[:,:,:3].min())
+            data_output[:, :, i] = remove_outliers(tif_array[:, :, i], 1)
+            data_output[:, :, i] = np.nan_to_num(normalization(data_output[:, :, i]))
+        img = (tif_array[:, :, :3] - tif_array[:, :, :3].min()) / (
+                    tif_array[:, :, :3].max() - tif_array[:, :, :3].min())
         plt.imshow(img)
         plt.show()
         if bbox == 1:
-            data_output[:, :, 3] = np.logical_and(tif_array[:,:,4]>th, tif_array[:,:,3]>0)
+            data_output[:, :, 3] = np.logical_and(tif_array[:, :, 4] > th, tif_array[:, :, 3] > 0)
         else:
             data_output[:, :, 3] = tif_array[:, :, 4] > th
         img = data_output[:, :, 3]
@@ -81,6 +89,7 @@ def dataset_gen():
     dataset_train = np.stack(dataset_train_list, axis=0)
     np.save('dataset/proj2_train.npy', dataset_train)
     return dataset_train
+
 
 def dataset_eva_gen():
     file_list = glob.glob('palsar_eva/*/*/*.tif')
@@ -100,9 +109,10 @@ def dataset_eva_gen():
         data_output = np.zeros((tif_array.shape[0], tif_array.shape[1], 4))
         img = np.zeros((tif_array.shape[0], tif_array.shape[1], 3))
         for i in range(3):
-            data_output[:,:,i] = remove_outliers(tif_array[:,:,i], 1)
-            data_output[:,:,i] = np.nan_to_num(standardization(data_output[:,:,i]))
-        img = (tif_array[:,:,:3]-tif_array[:,:,:3].min())/(tif_array[:,:,:3].max()-tif_array[:,:,:3].min())
+            data_output[:, :, i] = remove_outliers(tif_array[:, :, i], 1)
+            data_output[:, :, i] = np.nan_to_num(normalization(data_output[:, :, i]))
+        img = (tif_array[:, :, :3] - tif_array[:, :, :3].min()) / (
+                    tif_array[:, :, :3].max() - tif_array[:, :, :3].min())
         plt.imshow(img)
         plt.show()
         if bbox == 1:
@@ -110,7 +120,7 @@ def dataset_eva_gen():
         else:
             data_output[:, :, 3] = tif_array[:, :, 4] > th
         plt.title('c')
-        plt.imshow(data_output[:,:,3],cmap='Reds')
+        plt.imshow(data_output[:, :, 3], cmap='Reds')
         plt.savefig('label', bbox_inches='tight')
         plt.show()
 
@@ -119,9 +129,11 @@ def dataset_eva_gen():
         for i in range(data_index_x):
             for j in range(data_index_y):
                 if (i * 128) + 256 < size_x and (j * 128) + 256 < size_y:
-                    dataset_eva_list.append(data_output[i * 128 : (i * 128) + 256, j * 128 : (j * 128) + 256, :])
+                    dataset_eva_list.append(data_output[i * 128: (i * 128) + 256, j * 128: (j * 128) + 256, :])
         dataset_eva = np.stack(dataset_eva_list, axis=0)
-        np.save('dataset/'+landcover+fire_id+'x'+str(data_index_x)+'y'+str(data_index_y)+'.npy', dataset_eva)
+        np.save('dataset/' + landcover + fire_id + 'x' + str(data_index_x) + 'y' + str(data_index_y) + '.npy',
+                dataset_eva)
+
 
 if __name__ == '__main__':
     dataset_gen()
