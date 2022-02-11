@@ -15,7 +15,7 @@ from tensorflow.keras.mixed_precision import experimental as mixed_precision
 
 def get_dateset(batch_size):
 
-    train_dataset = np.load('/geoinfo_vol1/zhao2/proj2_dataset/proj2_train.npy')
+    train_dataset = np.load('/geoinfo_vol1/zhao2/proj2_dataset/proj2_train_norm.npy')
     # val_dataset = np.load('/geoinfo_vol1/zhao2/proj2_dataset/proj2_test.npy')
     print(train_dataset.shape)
     y_dataset = train_dataset[:,:,:,3]>0
