@@ -147,7 +147,7 @@ if __name__=='__main__':
             learning_rate=learning_rate, weight_decay=weight_decay
         )
 
-        model.compile(optimizer, loss=bce_jaccard_loss, metrics=[iou_score, f1_score])
+        model.compile(optimizer, loss=dice_coef, metrics=[iou_score, f1_score])
 
     options = tf.data.Options()
     options.experimental_distribute.auto_shard_policy = tf.data.experimental.AutoShardPolicy.OFF
