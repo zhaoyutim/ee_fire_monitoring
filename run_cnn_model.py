@@ -77,9 +77,9 @@ if __name__=='__main__':
     learning_rate = args.lr
     weight_decay = learning_rate/10
 
-    # train_dataset, val_dataset, steps_per_epoch, validation_steps = get_dateset(batch_size)
+    train_dataset, val_dataset, steps_per_epoch, validation_steps = get_dateset(batch_size)
 
-    # wandb_config(model_name, backbone)
+    wandb_config(model_name, backbone)
 
     strategy = tf.distribute.MirroredStrategy()
     with strategy.scope():
@@ -118,9 +118,10 @@ if __name__=='__main__':
             model = tf.keras.Model(input, output_resize, name=model_name)
         elif model_name == 'swinunet':
             input = tf.keras.Input(shape=(None, None, 3))
-            basemodel = models.swin_unet_2d((256, 256, 3), filter_num_begin=64, n_labels=1, depth=4, stack_num_down=2, stack_num_up=2,
-                                        patch_size=(2, 2), num_heads=[4, 4, 4, 4], window_size=[2, 2, 2, 2], num_mlp=512,
+            basemodel = models.swin_unet_2d((224, 224, 3), filter_num_begin=64, n_labels=1, depth=4, stack_num_down=2, stack_num_up=2,
+                                        patch_size=(2, 2), num_heads=[3, 6, 12, 24], window_size=[7, 7, 7, 7], num_mlp=512,
                                         output_activation='Sigmoid', shift_window=True, name='swin_unet')
+            # basemodel.summary()
             output = basemodel(input)
             model = tf.keras.Model(input, output, name=model_name)
         elif model_name == 'transunet':
@@ -149,22 +150,22 @@ if __name__=='__main__':
 
         model.compile(optimizer, loss=dice_coef, metrics=[iou_score, f1_score])
 
-    # options = tf.data.Options()
-    # options.experimental_distribute.auto_shard_policy = tf.data.experimental.AutoShardPolicy.OFF
-    # train_dataset = train_dataset.with_options(options)
-    # val_dataset = val_dataset.with_options(options)
-    #
-    # if load_weights== 'yes':
-    #     model.load_weights('/geoinfo_vol1/zhao2/proj2_model/proj2_'+model_name+'_pretrained_'+backbone)
-    # else:
-    #     print('training in progress')
-    #     history = model.fit(
-    #         train_dataset,
-    #         batch_size=batch_size,
-    #         steps_per_epoch=steps_per_epoch,
-    #         validation_data=val_dataset,
-    #         validation_steps=validation_steps,
-    #         epochs=MAX_EPOCHS,
-    #         callbacks=[WandbCallback()],
-    #     )
-    #     model.save('/geoinfo_vol1/zhao2/proj2_model/proj2_'+model_name+'_pretrained_'+backbone)
+    options = tf.data.Options()
+    options.experimental_distribute.auto_shard_policy = tf.data.experimental.AutoShardPolicy.OFF
+    train_dataset = train_dataset.with_options(options)
+    val_dataset = val_dataset.with_options(options)
+
+    if load_weights== 'yes':
+        model.load_weights('/geoinfo_vol1/zhao2/proj2_model/proj2_'+model_name+'_pretrained_'+backbone)
+    else:
+        print('training in progress')
+        history = model.fit(
+            train_dataset,
+            batch_size=batch_size,
+            steps_per_epoch=steps_per_epoch,
+            validation_data=val_dataset,
+            validation_steps=validation_steps,
+            epochs=MAX_EPOCHS,
+            callbacks=[WandbCallback()],
+        )
+        model.save('/geoinfo_vol1/zhao2/proj2_model/proj2_'+model_name+'_pretrained_'+backbone)
