@@ -119,7 +119,7 @@ if __name__=='__main__':
         elif model_name == 'swinunet':
             input = tf.keras.Input(shape=(None, None, 3))
             basemodel = models.swin_unet_2d((256, 256, 3), filter_num_begin=64, n_labels=1, depth=4, stack_num_down=2, stack_num_up=2,
-                                        patch_size=(2, 2), num_heads=[4, 8, 8, 8], window_size=[4, 2, 2, 2], num_mlp=512,
+                                        patch_size=(2, 2), num_heads=[8, 8, 8, 8], window_size=[16, 8, 4, 4], num_mlp=512,
                                         output_activation='Sigmoid', shift_window=True, name='swin_unet')
             output = basemodel(input)
             model = tf.keras.Model(input, output, name=model_name)
@@ -143,8 +143,8 @@ if __name__=='__main__':
             model = tf.keras.Model(input, output, name=model_name)
         model.summary()
 
-        optimizer = tfa.optimizers.AdamW(
-            learning_rate=learning_rate, weight_decay=weight_decay
+        optimizer = tfa.optimizers.SGDW(
+            learning_rate=learning_rate, weight_decay=weight_decay, momentum=0.9
         )
 
         model.compile(optimizer, loss=dice_coef, metrics=[iou_score, f1_score])

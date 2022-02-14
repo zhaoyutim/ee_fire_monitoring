@@ -1,6 +1,6 @@
 ee==0.4
 matplotlib==3.3.4
-numpy==1.19.5
+numpy==1.21
 Pillow==9.0.0
 protobuf==3.19.3
 PyYAML==6.0

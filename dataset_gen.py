@@ -68,7 +68,7 @@ def dataset_gen():
         data_output = np.zeros((tif_array.shape[0], tif_array.shape[1], 4))
         for i in range(3):
             data_output[:, :, i] = remove_outliers(tif_array[:, :, i], 1)
-            data_output[:, :, i] = np.nan_to_num(normalization(data_output[:, :, i]))
+            data_output[:, :, i] = np.nan_to_num(standardization(data_output[:, :, i]))
         img = (tif_array[:, :, :3] - tif_array[:, :, :3].min()) / (
                     tif_array[:, :, :3].max() - tif_array[:, :, :3].min())
         plt.imshow(img)
@@ -110,7 +110,7 @@ def dataset_eva_gen():
         img = np.zeros((tif_array.shape[0], tif_array.shape[1], 3))
         for i in range(3):
             data_output[:, :, i] = remove_outliers(tif_array[:, :, i], 1)
-            data_output[:, :, i] = np.nan_to_num(normalization(data_output[:, :, i]))
+            data_output[:, :, i] = np.nan_to_num(standardization(data_output[:, :, i]))
         img = (tif_array[:, :, :3] - tif_array[:, :, :3].min()) / (
                     tif_array[:, :, :3].max() - tif_array[:, :, :3].min())
         plt.imshow(img)
