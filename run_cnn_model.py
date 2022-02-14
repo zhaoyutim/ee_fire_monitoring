@@ -77,9 +77,9 @@ if __name__=='__main__':
     learning_rate = args.lr
     weight_decay = learning_rate/10
 
-    train_dataset, val_dataset, steps_per_epoch, validation_steps = get_dateset(batch_size)
+    # train_dataset, val_dataset, steps_per_epoch, validation_steps = get_dateset(batch_size)
 
-    wandb_config(model_name, backbone)
+    # wandb_config(model_name, backbone)
 
     strategy = tf.distribute.MirroredStrategy()
     with strategy.scope():
@@ -112,7 +112,7 @@ if __name__=='__main__':
             input = tf.keras.Input(shape=(None, None, 3))
             input_resize = tf.keras.layers.Resizing(384,384)(input)
             conv1 = tf.keras.layers.Conv2D(3, 3, activation = 'linear', padding = 'same', kernel_initializer = 'he_normal')(input_resize)
-            basemodel = PSPNet(backbone, encoder_weights='imagenet', activation='sigmoid', classes=1)
+            basemodel = PSPNet(backbone, activation='sigmoid', classes=1)
             output = basemodel(conv1)
             output_resize = tf.keras.layers.Resizing(256,256)(output)
             model = tf.keras.Model(input, output_resize, name=model_name)
@@ -149,22 +149,22 @@ if __name__=='__main__':
 
         model.compile(optimizer, loss=dice_coef, metrics=[iou_score, f1_score])
 
-    options = tf.data.Options()
-    options.experimental_distribute.auto_shard_policy = tf.data.experimental.AutoShardPolicy.OFF
-    train_dataset = train_dataset.with_options(options)
-    val_dataset = val_dataset.with_options(options)
-
-    if load_weights== 'yes':
-        model.load_weights('/geoinfo_vol1/zhao2/proj2_model/proj2_'+model_name+'_pretrained_'+backbone)
-    else:
-        print('training in progress')
-        history = model.fit(
-            train_dataset,
-            batch_size=batch_size,
-            steps_per_epoch=steps_per_epoch,
-            validation_data=val_dataset,
-            validation_steps=validation_steps,
-            epochs=MAX_EPOCHS,
-            callbacks=[WandbCallback()],
-        )
-        model.save('/geoinfo_vol1/zhao2/proj2_model/proj2_'+model_name+'_pretrained_'+backbone)
+    # options = tf.data.Options()
+    # options.experimental_distribute.auto_shard_policy = tf.data.experimental.AutoShardPolicy.OFF
+    # train_dataset = train_dataset.with_options(options)
+    # val_dataset = val_dataset.with_options(options)
+    #
+    # if load_weights== 'yes':
+    #     model.load_weights('/geoinfo_vol1/zhao2/proj2_model/proj2_'+model_name+'_pretrained_'+backbone)
+    # else:
+    #     print('training in progress')
+    #     history = model.fit(
+    #         train_dataset,
+    #         batch_size=batch_size,
+    #         steps_per_epoch=steps_per_epoch,
+    #         validation_data=val_dataset,
+    #         validation_steps=validation_steps,
+    #         epochs=MAX_EPOCHS,
+    #         callbacks=[WandbCallback()],
+    #     )
+    #     model.save('/geoinfo_vol1/zhao2/proj2_model/proj2_'+model_name+'_pretrained_'+backbone)
