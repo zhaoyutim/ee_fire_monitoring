@@ -509,6 +509,10 @@ class SwinTransformerModel(tf.keras.Model):
                                         use_checkpoint=use_checkpoint,
                                         prefix=f'decoder_layers{self.num_layers-1-i_layer}') for i_layer in range(self.num_layers-1, -1, -1)]
         self.patch_restore = PatchRestoration(dim=int(embed_dim), input_resolution=(patches_resolution[0], patches_resolution[1]), patch_size=patch_size[0])
+        self.dense1 = Dense(self.embed_dim*4, use_bias=False, name='{}_concat_linear_proj_{}'.format('swinunet', '1'))
+        self.dense2 = Dense(self.embed_dim*2, use_bias=False, name='{}_concat_linear_proj_{}'.format('swinunet', '2'))
+        self.dense3 = Dense(self.embed_dim, use_bias=False, name='{}_concat_linear_proj_{}'.format('swinunet', '3'))
+        self.conv1 = Conv2D(self.num_classes, 3, padding='same', use_bias=True, activation='sigmoid')
         # self.avgpool = GlobalAveragePooling1D()
         # if self.include_top:
         #     self.head = Dense(num_classes, name='head')
@@ -528,18 +532,21 @@ class SwinTransformerModel(tf.keras.Model):
         skip_x3 = x
         x = self.basic_layers[3](x)
 
-        x = tf.concat([self.decoder_layers[0](x), skip_x3], axis=-1)
-        x = Dense(self.embed_dim*4, use_bias=False, name='{}_concat_linear_proj_{}'.format('swinunet', '1'))(x)
-        x = tf.concat([self.decoder_layers[1](x), skip_x2], axis=-1)
-        x = Dense(self.embed_dim*2, use_bias=False, name='{}_concat_linear_proj_{}'.format('swinunet', '1'))(x)
-        x = tf.concat([self.decoder_layers[2](x), skip_x1], axis=-1)
-        x = Dense(self.embed_dim, use_bias=False, name='{}_concat_linear_proj_{}'.format('swinunet', '1'))(x)
+        x = self.decoder_layers[0](x)
+        x = tf.concat([x, skip_x3], axis=-1)
+        x = self.dense1(x)
+        x = self.decoder_layers[1](x)
+        x = tf.concat([x, skip_x2], axis=-1)
+        x = self.dense2(x)
+        x = self.decoder_layers[2](x)
+        x = tf.concat([x, skip_x1], axis=-1)
+        x = self.dense3(x)
         x = self.decoder_layers[3](x)
 
         x = self.patch_restore(x)
         #     x = tf.concat([x, self.skip_connections[j]], -1)
         # x = self.decoder_layers[self.num_layers-1](x)
-        x = Conv2D(self.num_classes, 3, padding='same', use_bias=True, activation='sigmoid')(x)
+        x = self.conv1(x)
         # x = self.norm(x)
         # x = self.avgpool(x)
         return x
@@ -581,3 +588,5 @@ def SwinTransformer(model_name='swin_tiny_224', num_classes=1000, include_top=Tr
 if __name__=='__main__':
     model = SwinTransformer('swin_tiny_224', num_classes=1, include_top=False, pretrained=True)
     model.summary()
+    from tensorflow.keras.utils import plot_model
+    plot_model(model, to_file='model.png')
