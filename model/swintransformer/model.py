@@ -561,7 +561,7 @@ def SwinTransformer(model_name='swin_tiny_224', num_classes=1000, include_top=Tr
     if pretrained is True:
         url = f'https://github.com/rishigami/Swin-Transformer-TF/releases/download/v0.1-tf-swin-weights/{model_name}.tgz'
         pretrained_ckpt = tf.keras.utils.get_file(
-            model_name, url, untar=True)
+            model_name, url, untar=True, cached_dir='/geoinfo_vol1/zhao2/')
     else:
         pretrained_ckpt = pretrained
 
