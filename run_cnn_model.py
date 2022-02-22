@@ -124,7 +124,7 @@ if __name__=='__main__':
             # basemodel = models.swin_unet_2d((224, 224, 3), filter_num_begin=64, n_labels=1, depth=4, stack_num_down=2, stack_num_up=2,
             #                             patch_size=(2, 2), num_heads=[3, 6, 12, 24], window_size=[7, 7, 7, 7], num_mlp=512,
             #                             output_activation='Sigmoid', shift_window=True, name='swin_unet')
-            basemodel = SwinTransformer('swin_tiny_224', num_classes=1, include_top=False, pretrained=True)
+            basemodel = SwinTransformer('swin_tiny_224', num_classes=1, include_top=False, pretrained=False)
 
             # basemodel.summary()
             output = basemodel(input_resize)

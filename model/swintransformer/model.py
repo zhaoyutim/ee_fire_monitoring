@@ -2,6 +2,7 @@ import numpy as np
 import tensorflow as tf
 from tensorflow.keras.layers import Dense, Dropout, Conv2D, LayerNormalization, GlobalAveragePooling1D
 from tensorflow.nn import depth_to_space
+from sys import platform
 
 CFGS = {
     'swin_tiny_224': dict(input_size=(224, 224), window_size=7, embed_dim=96, depths=[2, 2, 6, 2], num_heads=[3, 6, 12, 24]),
@@ -285,8 +286,6 @@ class PatchExpanding(tf.keras.layers.Layer):
 
         # Linear transformations that doubles the channels
         self.linear_trans1 = Conv2D(2*dim, kernel_size=1, use_bias=False, name=f'{prefix}/upsample/linear_trans1')
-        #
-        self.linear_trans2 = Conv2D(2*dim, kernel_size=1, use_bias=False, name=f'{prefix}/upsample/linear_trans2')
 
     def call(self, x):
 
@@ -508,7 +507,7 @@ class SwinTransformerModel(tf.keras.Model):
                                             i_layer > 0) else None,
                                         use_checkpoint=use_checkpoint,
                                         prefix=f'decoder_layers{self.num_layers-1-i_layer}') for i_layer in range(self.num_layers-1, -1, -1)]
-        self.patch_restore = PatchRestoration(dim=int(embed_dim), input_resolution=(patches_resolution[0], patches_resolution[1]), patch_size=patch_size[0])
+        self.patch_restore = PatchRestoration(dim=int(embed_dim), input_resolution=(patches_resolution[0], patches_resolution[1]), patch_size=patch_size[0], prefix='patch_restore')
         self.dense1 = Dense(self.embed_dim*4, use_bias=False, name='{}_concat_linear_proj_{}'.format('swinunet', '1'))
         self.dense2 = Dense(self.embed_dim*2, use_bias=False, name='{}_concat_linear_proj_{}'.format('swinunet', '2'))
         self.dense3 = Dense(self.embed_dim, use_bias=False, name='{}_concat_linear_proj_{}'.format('swinunet', '3'))
@@ -567,8 +566,13 @@ def SwinTransformer(model_name='swin_tiny_224', num_classes=1000, include_top=Tr
     net(tf.keras.Input(shape=(cfg['input_size'][0], cfg['input_size'][1], 3)))
     if pretrained is True:
         url = f'https://github.com/rishigami/Swin-Transformer-TF/releases/download/v0.1-tf-swin-weights/{model_name}.tgz'
+
+        if platform == "darwin":
+            cached_dir = '~/.keras'
+        else:
+            cached_dir = '/geoinfo_vol1/zhao2/'
         pretrained_ckpt = tf.keras.utils.get_file(
-            model_name, url, untar=True, cache_dir='/geoinfo_vol1/zhao2/')
+            model_name, url, untar=True, cache_dir=cached_dir)
     else:
         pretrained_ckpt = pretrained
 
@@ -579,14 +583,12 @@ def SwinTransformer(model_name='swin_tiny_224', num_classes=1000, include_top=Tr
         if use_tpu:
             load_locally = tf.saved_model.LoadOptions(
                 experimental_io_device='/job:localhost')
-            net.load_weights(pretrained_ckpt, options=load_locally)
+            net.load_weights(pretrained_ckpt, by_name=True, skip_mismatch=False, options=load_locally)
         else:
-            net.load_weights(pretrained_ckpt)
+            net.load_weights(pretrained_ckpt, by_name=True, skip_mismatch=False)
 
     return net
 
 if __name__=='__main__':
-    model = SwinTransformer('swin_tiny_224', num_classes=1, include_top=False, pretrained=True)
+    model = SwinTransformer('swin_tiny_224', num_classes=1, include_top=False, pretrained=False)
     model.summary()
-    from tensorflow.keras.utils import plot_model
-    plot_model(model, to_file='model.png')
