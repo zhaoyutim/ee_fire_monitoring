@@ -92,49 +92,96 @@ def dataset_gen():
 
 
 def dataset_eva_gen():
-    file_list = glob.glob('palsar_eva/*/*/*.tif')
-    overlap = 128
-    for idx in range(len(file_list)):
-        file_name = file_list[idx]
-        dataset_eva_list = []
-        fire_id = file_name.split('/')[2][:-5]
-        landcover = file_name.split('/')[1]
-        print(fire_id)
-        th = config_eva.get(landcover).get(int(fire_id)).get('th')
-        bbox = config_eva.get(landcover).get(int(fire_id)).get('bbox')
-        tif_array, _ = read_tiff(file_name)
-        _, size_x, size_y = tif_array.shape
-        tif_array = tif_array.transpose((1, 2, 0))
-        tif_array = np.nan_to_num(tif_array)
-        data_output = np.zeros((tif_array.shape[0], tif_array.shape[1], 4))
-        img = np.zeros((tif_array.shape[0], tif_array.shape[1], 3))
-        for i in range(3):
-            data_output[:, :, i] = remove_outliers(tif_array[:, :, i], 1)
-            data_output[:, :, i] = np.nan_to_num(standardization(data_output[:, :, i]))
-        img = (tif_array[:, :, :3] - tif_array[:, :, :3].min()) / (
-                    tif_array[:, :, :3].max() - tif_array[:, :, :3].min())
-        plt.imshow(img)
-        plt.show()
-        if bbox == 1:
-            data_output[:, :, 3] = np.logical_and(tif_array[:, :, 4] > th, tif_array[:, :, 3] > 0)
-        else:
-            data_output[:, :, 3] = tif_array[:, :, 4] > th
-        plt.title('c')
-        plt.imshow(data_output[:, :, 3], cmap='Reds')
-        plt.savefig('label', bbox_inches='tight')
-        plt.show()
+    land_covers = ['needle', 'broadleaf', 'grasslands', 'shrublands', 'savannas', 'mixed']
+    for land_cover in land_covers:
+        file_list = glob.glob('palsar_eva/'+land_cover+'/*/*.tif')
+        overlap = 64
+        for idx in range(len(file_list)):
+            file_name = file_list[idx]
+            dataset_eva_list = []
+            if len(file_name.split('/')[2])==13:
+                fire_id = file_name.split('/')[2][:-5]
+                landcover = file_name.split('/')[1]
+                print(fire_id)
+                th = config_eva.get(landcover).get(int(fire_id)).get('th')
+                bbox = config_eva.get(landcover).get(int(fire_id)).get('bbox')
+                tif_array, _ = read_tiff(file_name)
+                _, size_x, size_y = tif_array.shape
+                tif_array = tif_array.transpose((1, 2, 0))
+                tif_array = np.nan_to_num(tif_array)
+                data_output = np.zeros((tif_array.shape[0], tif_array.shape[1], 4))
+                img = np.zeros((tif_array.shape[0], tif_array.shape[1], 3))
+                for i in range(3):
+                    data_output[:, :, i] = remove_outliers(tif_array[:, :, i], 1)
+                    data_output[:, :, i] = np.nan_to_num(standardization(data_output[:, :, i]))
+                img = (tif_array[:, :, :3] - tif_array[:, :, :3].min()) / (
+                            tif_array[:, :, :3].max() - tif_array[:, :, :3].min())
+                plt.imshow(img)
+                plt.show()
+                if bbox == 1:
+                    data_output[:, :, 3] = np.logical_and(tif_array[:, :, 4] > th, tif_array[:, :, 3] > 0)
+                else:
+                    data_output[:, :, 3] = tif_array[:, :, 4] > th
+                plt.title('c')
+                plt.imshow(data_output[:, :, 3], cmap='Reds')
+                plt.savefig('label', bbox_inches='tight')
+                plt.show()
 
-        data_index_y = size_y // 128
-        data_index_x = size_x // 128
-        for i in range(data_index_x):
-            for j in range(data_index_y):
-                if (i * 128) + 256 < size_x and (j * 128) + 256 < size_y:
-                    dataset_eva_list.append(data_output[i * 128: (i * 128) + 256, j * 128: (j * 128) + 256, :])
-        dataset_eva = np.stack(dataset_eva_list, axis=0)
-        np.save('dataset/' + landcover + fire_id + 'x' + str(data_index_x) + 'y' + str(data_index_y) + '.npy',
-                dataset_eva)
+                data_index_y = size_y // overlap
+                data_index_x = size_x // overlap
+                for i in range(data_index_x):
+                    for j in range(data_index_y):
+                        if (i * overlap) + 256 < size_x and (j * overlap) + 256 < size_y:
+                            dataset_eva_list.append(data_output[i * overlap: (i * overlap) + 256, j * overlap: (j * overlap) + 256, :])
+                dataset_eva = np.stack(dataset_eva_list, axis=0)
+                np.save('dataset/' + landcover + fire_id + 'x' + str(data_index_x) + 'y' + str(data_index_y) + '.npy',
+                        dataset_eva)
 
+def dataset_eva_gen_swe():
+    land_covers = ['savannas']
+    for land_cover in land_covers:
+        file_list = glob.glob('palsar_eva/'+land_cover+'/*/*.tif')
+        overlap = 64
+        for idx in range(len(file_list)):
+            file_name = file_list[idx]
+            dataset_eva_list = []
+            if len(file_name.split('/')[2])!=13:
+                fire_id = file_name.split('/')[2]
+                landcover = file_name.split('/')[1]
+                print(fire_id)
+                th = config_eva.get(landcover).get(int(fire_id)).get('th')
+                bbox = config_eva.get(landcover).get(int(fire_id)).get('bbox')
+                tif_array, _ = read_tiff(file_name)
+                _, size_x, size_y = tif_array.shape
+                tif_array = tif_array.transpose((1, 2, 0))
+                tif_array = np.nan_to_num(tif_array)
+                data_output = np.zeros((tif_array.shape[0], tif_array.shape[1], 4))
+                img = np.zeros((tif_array.shape[0], tif_array.shape[1], 3))
+                for i in range(3):
+                    data_output[:, :, i] = remove_outliers(tif_array[:, :, i], 1)
+                    data_output[:, :, i] = np.nan_to_num(standardization(data_output[:, :, i]))
+                img = (tif_array[:, :, :3] - tif_array[:, :, :3].min()) / (
+                        tif_array[:, :, :3].max() - tif_array[:, :, :3].min())
+                plt.imshow(img)
+                plt.show()
+                label = np.nan_to_num(tif_array[:, :, 3])
+                data_output[:, :, 3] = label > 0
+                plt.title('c')
+                plt.imshow(data_output[:, :, 3], cmap='Reds')
+                plt.savefig('label', bbox_inches='tight')
+                plt.show()
+
+                data_index_y = size_y // overlap
+                data_index_x = size_x // overlap
+                for i in range(data_index_x):
+                    for j in range(data_index_y):
+                        if (i * overlap) + 256 < size_x and (j * overlap) + 256 < size_y:
+                            dataset_eva_list.append(data_output[i * overlap: (i * overlap) + 256, j * overlap: (j * overlap) + 256, :])
+                dataset_eva = np.stack(dataset_eva_list, axis=0)
+                np.save('dataset/' + landcover + fire_id + 'x' + str(data_index_x) + 'y' + str(data_index_y) + '.npy',
+                        dataset_eva)
 
 if __name__ == '__main__':
-    dataset_gen()
+    # dataset_gen()
     dataset_eva_gen()
+    dataset_eva_gen_swe()
