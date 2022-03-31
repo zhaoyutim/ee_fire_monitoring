@@ -95,7 +95,7 @@ if __name__=='__main__':
         elif model_name == 'unet':
             input = tf.keras.Input(shape=(None, None, 3))
             conv1 = tf.keras.layers.Conv2D(3, 3, activation = 'linear', padding = 'same', kernel_initializer = 'he_normal')(input)
-            if backbone == None:
+            if backbone == 'None':
                 basemodel = Unet(encoder_weights='imagenet', activation='sigmoid')
             else:
                 basemodel = Unet(backbone, encoder_weights='imagenet', activation='sigmoid')

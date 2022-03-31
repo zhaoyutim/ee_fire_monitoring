@@ -95,7 +95,7 @@ def dataset_eva_gen():
     land_covers = ['needle', 'broadleaf', 'grasslands', 'shrublands', 'savannas', 'mixed']
     for land_cover in land_covers:
         file_list = glob.glob('palsar_eva/'+land_cover+'/*/*.tif')
-        overlap = 64
+        overlap = 192
         for idx in range(len(file_list)):
             file_name = file_list[idx]
             dataset_eva_list = []
@@ -141,7 +141,7 @@ def dataset_eva_gen_swe():
     land_covers = ['savannas']
     for land_cover in land_covers:
         file_list = glob.glob('palsar_eva/'+land_cover+'/*/*.tif')
-        overlap = 64
+        overlap = 192
         for idx in range(len(file_list)):
             file_name = file_list[idx]
             dataset_eva_list = []
@@ -159,9 +159,9 @@ def dataset_eva_gen_swe():
                 img = np.zeros((tif_array.shape[0], tif_array.shape[1], 3))
                 for i in range(3):
                     data_output[:, :, i] = remove_outliers(tif_array[:, :, i], 1)
-                    data_output[:, :, i] = np.nan_to_num(standardization(data_output[:, :, i]))
-                img = (tif_array[:, :, :3] - tif_array[:, :, :3].min()) / (
-                        tif_array[:, :, :3].max() - tif_array[:, :, :3].min())
+                    data_output[:, :, i] = np.abs(np.nan_to_num(standardization(data_output[:, :, i])))
+                img = (data_output[:, :, :3] - data_output[:, :, :3].min()) / (
+                        data_output[:, :, :3].max() - data_output[:, :, :3].min())
                 plt.imshow(img)
                 plt.show()
                 label = np.nan_to_num(tif_array[:, :, 3])
@@ -183,5 +183,5 @@ def dataset_eva_gen_swe():
 
 if __name__ == '__main__':
     # dataset_gen()
-    dataset_eva_gen()
+    # dataset_eva_gen()
     dataset_eva_gen_swe()
