@@ -65,8 +65,8 @@ def dataset_gen():
         _, size_x, size_y = tif_array.shape
         tif_array = tif_array.transpose((1, 2, 0))
         tif_array = np.nan_to_num(tif_array)
-        data_output = np.zeros((tif_array.shape[0], tif_array.shape[1], 4))
-        for i in range(3):
+        data_output = np.zeros((tif_array.shape[0], tif_array.shape[1], 5))
+        for i in range(4):
             data_output[:, :, i] = remove_outliers(tif_array[:, :, i], 1)
             data_output[:, :, i] = np.nan_to_num(standardization(data_output[:, :, i]))
         img = (tif_array[:, :, :3] - tif_array[:, :, :3].min()) / (
@@ -74,10 +74,10 @@ def dataset_gen():
         plt.imshow(img)
         plt.show()
         if bbox == 1:
-            data_output[:, :, 3] = np.logical_and(tif_array[:, :, 4] > th, tif_array[:, :, 3] > 0)
+            data_output[:, :, 4] = np.logical_and(tif_array[:, :, 5] > th, tif_array[:, :, 4] > 0)
         else:
-            data_output[:, :, 3] = tif_array[:, :, 4] > th
-        img = data_output[:, :, 3]
+            data_output[:, :, 4] = tif_array[:, :, 5] > th
+        img = data_output[:, :, 4]
         plt.imshow(img)
         plt.show()
         data_index_y = size_y // 256
@@ -109,9 +109,9 @@ def dataset_eva_gen():
                 _, size_x, size_y = tif_array.shape
                 tif_array = tif_array.transpose((1, 2, 0))
                 tif_array = np.nan_to_num(tif_array)
-                data_output = np.zeros((tif_array.shape[0], tif_array.shape[1], 4))
+                data_output = np.zeros((tif_array.shape[0], tif_array.shape[1], 5))
                 img = np.zeros((tif_array.shape[0], tif_array.shape[1], 3))
-                for i in range(3):
+                for i in range(4):
                     data_output[:, :, i] = remove_outliers(tif_array[:, :, i], 1)
                     data_output[:, :, i] = np.nan_to_num(standardization(data_output[:, :, i]))
                 img = (tif_array[:, :, :3] - tif_array[:, :, :3].min()) / (
@@ -119,11 +119,11 @@ def dataset_eva_gen():
                 plt.imshow(img)
                 plt.show()
                 if bbox == 1:
-                    data_output[:, :, 3] = np.logical_and(tif_array[:, :, 4] > th, tif_array[:, :, 3] > 0)
+                    data_output[:, :, 4] = np.logical_and(tif_array[:, :, 5] > th, tif_array[:, :, 4] > 0)
                 else:
-                    data_output[:, :, 3] = tif_array[:, :, 4] > th
+                    data_output[:, :, 4] = tif_array[:, :, 5] > th
                 plt.title('c')
-                plt.imshow(data_output[:, :, 3], cmap='Reds')
+                plt.imshow(data_output[:, :, 4], cmap='Reds')
                 plt.savefig('label', bbox_inches='tight')
                 plt.show()
 
@@ -183,5 +183,5 @@ def dataset_eva_gen_swe():
 
 if __name__ == '__main__':
     # dataset_gen()
-    # dataset_eva_gen()
-    dataset_eva_gen_swe()
+    dataset_eva_gen()
+    # dataset_eva_gen_swe()

@@ -2,161 +2,247 @@ needle:
   23715257:
     th: 0.2
     bbox: 1
+    pre: 2019
+    post: 2020
   21227933:
     th: 0.15
     bbox: 1
+    pre: 2018
+    post: 2020
   23715452:
     th: 0.4
     bbox: 1
+    pre: 2019
+    post: 2020
   22891086:
     th: 0.2
     bbox: 1
+    pre: 2019
+    post: 2020
   22995867:
     th: 0.1
     bbox: 0
-  20146873:
-    th: 0.5
-    bbox: 1
+    pre: 2019
+    post: 2020
+#  20146873:
+#    th: 0.5
+#    bbox: 1
+#    pre: 2017
+#    post: 2018
   22097781:
     th: 0.25
     bbox: 1
+    pre: 2017
+    post: 2020
   20283483:
     th: 0.1
     bbox: 1
+    pre: 2017
+    post: 2020
   22170713:
     th: 0.05
     bbox: 1
+    pre: 2018
+    post: 2020
   22379535:
     th: 0.1
     bbox: 1
+    pre: 2018
+    post: 2020
   23582678:
     th: 0.1
     bbox: 1
+    pre: 2019
+    post: 2020
 
 broadleaf:
   22732209:
     th: 0.2
     bbox: 1
+    pre: 2019
+    post: 2020
   22893220:
     th: 0.1
     bbox: 1
-  20151136:
-    th: 0.2
-    bbox: 0
+    pre: 2019
+    post: 2020
+#  20151136:
+#    th: 0.2
+#    bbox: 0
+#    pre: 2019
+#    post: 2020
   22810914:
     th: 0.3
     bbox: 1
-  21842834:
-    th: 0.2
-    bbox: 1
-  21929941:
-    th: 0.3
-    bbox: 1
-  21850723:
-    th: 0.1
-    bbox: 1
+    pre: 2019
+    post: 2020
+#  21842834:
+#    th: 0.2
+#    bbox: 1
+#    pre: 2019
+#    post: 2020
+#  21929941:
+#    th: 0.3
+#    bbox: 1
+#    pre: 2018
+#    post: 2020
+#  21850723:
+#    th: 0.1
+#    bbox: 1
+#    pre: 2019
+#    post: 2020
   22535328:
     th: 0.25
     bbox: 1
+    pre: 2019
+    post: 2020
   22728748:
     th: 0.25
     bbox: 1
+    pre: 2019
+    post: 2020
   21841683:
     th: 0.1
     bbox: 0
+    pre: 2018
+    post: 2019
 
 shrublands:
-  22257202:
-    th: 0.3
-    bbox: 1
+#  22257202:
+#    th: 0.3
+#    bbox: 1
+#    pre: 2018
+#    post: 2019
   22260358:
     th: 0.2
     bbox: 1
+    pre: 2019
+    post: 2020
   20126924:
     th: 0.1
     bbox: 1
+    pre: 2017
+    post: 2018
   20126909:
     th: 0.05
     bbox: 1
+    pre: 2017
+    post: 2018
   21362884:
     th: 0.1
     bbox: 1
+    pre: 2017
+    post: 2018
   21362948:
     th: 0.1
     bbox: 1
-  19947514:
-    th: 0.1
-    bbox: 1
+    pre: 2017
+    post: 2018
+#  19947514:
+#    th: 0.1
+#    bbox: 1
   22167211:
     th: 0.2
     bbox: 1
-  19947535:
-    th: 0
-    bbox: 1
+    pre: 2018
+    post: 2019
+#  19947535:
+#    th: 0
+#    bbox: 1
   21856555:
     th: 0.1
     bbox: 1
+    pre: 2018
+    post: 2020
 
 savannas:
   22097806:
     th: 0.3
     bbox: 1
+    pre: 2018
+    post: 2019
   21229086:
     th: 0
     bbox: 1
+    pre: 2018
+    post: 2019
   20023729:
     th: 0.1
     bbox: 1
+    pre: 2017
+    post: 2018
   22377250:
     th: 0.1
     bbox: 1
-  19806346:
-    th: 0.15
-    bbox: 1
+    pre: 2019
+    post: 2020
+#  19806346:
+#    th: 0.15
+#    bbox: 1
   20419916:
     th: 0.1
     bbox: 1
-  20401560:
-    th: 0.1
-    bbox: 1
-  20401561:
-    th: 0.1
-    bbox: 1
+    pre: 2017
+    post: 2018
+#  20401560:
+#    th: 0.1
+#    bbox: 1
+#  20401561:
+#    th: 0.1
+#    bbox: 1
   22170840:
     th: 0
     bbox: 1
+    pre: 2018
+    post: 2019
   22170850:
     th: 0
     bbox: 1
+    pre: 2019
+    post: 2020
 
 grasslands:
-  21230220:
-    th: 0.2
-    bbox: 1
+#  21230220:
+#    th: 0.2
+#    bbox: 1
   20023874:
     th: -0.2
     bbox: 1
+    pre: 2017
+    post: 2018
   20146609:
     th: -0.2
     bbox: 1
-  21121606:
-    th: 0.3
-    bbox: 1
+    pre: 2017
+    post: 2018
+#  21121606:
+#    th: 0.3
+#    bbox: 1
   20419928:
     th: 0.3
     bbox: 1
+    pre: 2017
+    post: 2018
   20419988:
     th: 0.3
     bbox: 1
-  20170393:
-    th: 0.25
-    bbox: 1
-  20015184:
-    th: 0.1
-    bbox: 1
+    pre: 2017
+    post: 2018
+#  20170393:
+#    th: 0.25
+#    bbox: 1
+#    pre: 2017
+#    post: 2018
+#  20015184:
+#    th: 0.1
+#    bbox: 1
+#    pre: 2017
+#    post: 2018
   22692878:
     th: -0.03
     bbox: 1
-  19876870:
-    th: -0.05
-    bbox: 1
+    pre: 2019
+    post: 2020
+#  19876870:
+#    th: -0.05
+#    bbox: 1

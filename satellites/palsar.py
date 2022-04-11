@@ -30,54 +30,45 @@ class palsar:
     def download_to_gcloud(self):
         land_covers = ['needle', 'broadleaf', 'shrublands', 'savannas', 'grasslands']
         for land_cover in land_covers:
-            ids = config.get(land_cover)
-            id_list = ee.List(config.get(land_cover))
+            id_list = ee.List(list(config.get(land_cover).keys()))
+            for y in range(2017,2021):
+                polygons = ee.FeatureCollection('projects/ee-zhaoyutim/assets/globfire'+str(y)).filter(ee.Filter.inList('Id', id_list))
+                polygons = polygons.map(self.get_buffer)
+                polygons = polygons.filter(ee.Filter.eq('Type', 'FinalArea'))
+                n = polygons.size().getInfo()
+                for i in range(n):
+                    poly = ee.Feature(polygons.toList(n).get(i))
+                    bbox = poly.geometry().bounds().buffer(2)
+                    pre_fire_end = datetime.datetime.fromtimestamp(poly.get('IDate').getInfo() / 1000)
+                    fire_year = pre_fire_end.year
+                    pre_fire_start = pre_fire_end - datetime.timedelta(weeks=12)
 
-            polygons = ee.FeatureCollection('JRC/GWIS/GlobFire/v2/FinalPerimeters').filter(ee.Filter.inList('Id', id_list))
-            # bbox = polygons.map(self.get_bbox)
-            polygons = polygons.map(self.get_buffer)
-            polygons = polygons.filterMetadata('area', 'not_less_than', 50000000).filterMetadata('InitialDate',
-                                                                                                 'not_less_than',
-                                                                                                 1490030000000)
-            file_list = glob('palsar/*/*')
-            n = polygons.size().getInfo()
-            for i in range(n):
-                # id = str(ids[i])
-                # if any(id in file_string for file_string in file_list):
-                #     continue
-                poly = ee.Feature(polygons.toList(n).get(i))
-                bbox = poly.geometry().bounds().buffer(2)
-                pre_fire_end = datetime.datetime.fromtimestamp(poly.get('InitialDate').getInfo() / 1000)
-                fire_year = pre_fire_end.year
-                pre_fire_start = pre_fire_end - datetime.timedelta(weeks=12)
-                after_fire_end = pre_fire_end + datetime.timedelta(weeks=8)
+                    pre_fire_median = ee.ImageCollection('COPERNICUS/S2')\
+                        .filterDate(pre_fire_start.strftime('%Y-%m-%d'), pre_fire_end.strftime('%Y-%m-%d'))\
+                        .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 100))\
+                        .filterBounds(bbox).median()
+                    pre_fire_median = self.get_ratio(pre_fire_median)
 
-                pre_fire_median = ee.ImageCollection('COPERNICUS/S2')\
-                    .filterDate(pre_fire_start.strftime('%Y-%m-%d'), pre_fire_end.strftime('%Y-%m-%d'))\
-                    .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 100))\
-                    .filterBounds(bbox).median()
-                pre_fire_median = self.get_ratio(pre_fire_median)
-
-
-                for year in range(fire_year, min(fire_year+2, 2021)):
+                    pre_year = config.get(land_cover).get(poly.getInfo().get('properties').get('Id')).get('pre')
+                    post_year = config.get(land_cover).get(poly.getInfo().get('properties').get('Id')).get('post')
                     # PARSAR dataset
-                    dataset = ee.ImageCollection('JAXA/ALOS/PALSAR/YEARLY/SAR').filter(ee.Filter.date(str(year), str(year + 1)))
-                    pre_img = ee.ImageCollection('JAXA/ALOS/PALSAR/YEARLY/SAR').filter(ee.Filter.date(str(year - 1), str(year)))
+                    post_img = ee.ImageCollection('JAXA/ALOS/PALSAR/YEARLY/SAR').filter(ee.Filter.date(str(post_year), str(post_year + 1)))
+                    pre_img = ee.ImageCollection('JAXA/ALOS/PALSAR/YEARLY/SAR').filter(ee.Filter.date(str(pre_year), str(pre_year + 1)))
 
-                    after_date = dataset.select('date').first().reduceRegion(
+                    after_date = post_img.select('date').first().reduceRegion(
                             reducer=ee.Reducer.mean(),
                             geometry=bbox,
                             scale=25,
                             maxPixels=1e9
                         )
-                    if year >= 2018:
+                    if post_year >= 2018:
                         after_date = ee.Date.fromYMD(2014, 6, 1).advance(ee.Number(after_date.get('date')).floor(), 'day').getInfo()
                     else:
                         after_date = ee.Date.fromYMD(1970, 1, 1).advance(ee.Number(after_date.get('date')).floor(), 'day').getInfo()
                     after_date = datetime.datetime.fromtimestamp(after_date.get('value') / 1000)
                     print(after_date, pre_fire_end, i, land_cover)
                     if after_date < pre_fire_end:
-                        if year == fire_year:
+                        if post_year == fire_year:
                             continue
                         else:
                             break
@@ -90,27 +81,27 @@ class palsar:
 
                         dnbr = pre_fire_median.select('index').subtract(after_img.select('index')).rename('dnbr')
 
-                        sarHh_log_pre = pre_img.select('HH').first().pow(2).log10().multiply(10).subtract(83)
-                        sarHv_log_pre = pre_img.select('HV').first().pow(2).log10().multiply(10).subtract(83)
+                        sarHh_log_pre = pre_img.select('HH').first().pow(2).log10().multiply(10).subtract(83).rename('HH_pre')
+                        sarHv_log_pre = pre_img.select('HV').first().pow(2).log10().multiply(10).subtract(83).rename('HV_pre')
                         sarhvhh_pre = sarHv_log_pre.subtract(sarHh_log_pre)
 
-                        sarHh_log = dataset.select('HH').first().pow(2).log10().multiply(10).subtract(83)
-                        sarHv_log = dataset.select('HV').first().pow(2).log10().multiply(10).subtract(83)
+                        sarHh_log = post_img.select('HH').first().pow(2).log10().multiply(10).subtract(83).rename('HH_post')
+                        sarHv_log = post_img.select('HV').first().pow(2).log10().multiply(10).subtract(83).rename('HV_post')
                         sarHvhh = sarHv_log.subtract(sarHh_log)
 
                         logrt_HH = sarHh_log_pre.subtract(sarHh_log)
                         logrt_HV = sarHv_log_pre.subtract(sarHv_log)
                         logrtHvhh = sarHvhh.subtract(sarhvhh_pre).rename('HV-HH')
 
-                        landAreaImg = polygons.reduceToImage(properties=['area'], reducer=ee.Reducer.first()).rename('polygons')
+                        landAreaImg = polygons.reduceToImage(properties=['Id'], reducer=ee.Reducer.first()).rename('polygons')
 
-                        composite = ee.Image([logrt_HH, logrt_HV, logrtHvhh, landAreaImg.gt(0), dnbr])
+                        composite = ee.Image([sarHh_log_pre, sarHv_log_pre, sarHh_log, sarHv_log, landAreaImg.gt(0), dnbr, logrt_HH, logrt_HV, logrtHvhh])
 
                         id = str(poly.get('Id').getInfo())
-                        dir = 'palsar' + '/' + land_cover + '/' + id + '_' + str(year) + '/' + str(year)
+                        dir = 'palsar' + '/' + land_cover + '/' + id + '_' + str(post_year) + '/' + str(post_year)
                         image_task = ee.batch.Export.image.toCloudStorage(
                             image=composite.toFloat(),
-                            description='Image Export:' + land_cover + '_' + id + '_' + str(year),
+                            description='Image Export:' + land_cover + '_' + id + '_' + str(post_year),
                             fileNamePrefix=dir,
                             bucket='ai4wildfire',
                             scale=25,
@@ -118,37 +109,36 @@ class palsar:
                             region=bbox,
                         )
                         image_task.start()
-                        print('Start with image task (id: {}).'.format('Image Export:' + land_cover + '_' + id + '_' + str(year)))
+                        print('Start with image task (id: {}).'.format('Image Export:' + land_cover + '_' + id + '_' + str(post_year)))
 
     def download_to_gcloud_evaluate(self):
         land_covers = ['needle', 'broadleaf', 'grasslands', 'shrublands', 'savannas', 'mixed']
         for land_cover in land_covers:
-            id_list = config_eva.get(land_cover)
-            polygons = ee.FeatureCollection('JRC/GWIS/GlobFire/v2/FinalPerimeters').filter(ee.Filter.inList('Id', id_list))
-            # bbox = polygons.map(self.get_bbox)
-            polygons = polygons.filterMetadata('area', 'not_less_than', 50000000).filterMetadata('InitialDate',
-                                                                                                 'not_less_than',
-                                                                                                 1490030000000)
-            n = polygons.size().getInfo()
-            for i in range(n):
-                poly = ee.Feature(polygons.toList(n).get(i))
-                bbox = poly.geometry().bounds().buffer(2)
-                pre_fire_end = datetime.datetime.fromtimestamp(poly.get('InitialDate').getInfo() / 1000)
-                fire_year = pre_fire_end.year
-                pre_fire_start = pre_fire_end - datetime.timedelta(weeks=12)
-                after_fire_end = pre_fire_end + datetime.timedelta(weeks=8)
+            id_list = ee.List(list(config_eva.get(land_cover).keys()))
+            for y in range(2017,2021):
+                polygons = ee.FeatureCollection('projects/ee-zhaoyutim/assets/globfire'+str(y)).filter(ee.Filter.inList('Id', id_list))
+                polygons = polygons.map(self.get_buffer)
+                polygons = polygons.filter(ee.Filter.eq('Type', 'FinalArea'))
+                n = polygons.size().getInfo()
 
-                pre_fire_median = ee.ImageCollection('COPERNICUS/S2')\
-                    .filterDate(pre_fire_start.strftime('%Y-%m-%d'), pre_fire_end.strftime('%Y-%m-%d'))\
-                    .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 100))\
-                    .filterBounds(bbox).median()
-                pre_fire_median = self.get_ratio(pre_fire_median)
+                for i in range(n):
+                    poly = ee.Feature(polygons.toList(n).get(i))
+                    bbox = poly.geometry().bounds().buffer(2)
+                    pre_fire_end = datetime.datetime.fromtimestamp(poly.get('IDate').getInfo() / 1000)
+                    fire_year = pre_fire_end.year
+                    pre_fire_start = pre_fire_end - datetime.timedelta(weeks=12)
 
+                    pre_fire_median = ee.ImageCollection('COPERNICUS/S2')\
+                        .filterDate(pre_fire_start.strftime('%Y-%m-%d'), pre_fire_end.strftime('%Y-%m-%d'))\
+                        .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 100))\
+                        .filterBounds(bbox).median()
+                    pre_fire_median = self.get_ratio(pre_fire_median)
 
-                for year in range(fire_year, min(fire_year+2, 2021)):
+                    pre_year = config_eva.get(land_cover).get(poly.getInfo().get('properties').get('Id')).get('pre')
+                    post_year = config_eva.get(land_cover).get(poly.getInfo().get('properties').get('Id')).get('post')
                     # PARSAR dataset
-                    dataset = ee.ImageCollection('JAXA/ALOS/PALSAR/YEARLY/SAR').filter(ee.Filter.date(str(year), str(year + 1)))
-                    pre_img = ee.ImageCollection('JAXA/ALOS/PALSAR/YEARLY/SAR').filter(ee.Filter.date(str(year - 1), str(year)))
+                    dataset = ee.ImageCollection('JAXA/ALOS/PALSAR/YEARLY/SAR').filter(ee.Filter.date(str(post_year), str(post_year + 1)))
+                    pre_img = ee.ImageCollection('JAXA/ALOS/PALSAR/YEARLY/SAR').filter(ee.Filter.date(str(pre_year), str(pre_year + 1)))
 
                     after_date = dataset.select('date').first().reduceRegion(
                             reducer=ee.Reducer.mean(),
@@ -156,14 +146,14 @@ class palsar:
                             scale=25,
                             maxPixels=1e9
                         )
-                    if year >= 2018:
+                    if post_year >= 2018:
                         after_date = ee.Date.fromYMD(2014, 6, 1).advance(ee.Number(after_date.get('date')).floor(), 'day').getInfo()
                     else:
                         after_date = ee.Date.fromYMD(1970, 1, 1).advance(ee.Number(after_date.get('date')).floor(), 'day').getInfo()
                     after_date = datetime.datetime.fromtimestamp(after_date.get('value') / 1000)
                     print(after_date, pre_fire_end, i, land_cover)
                     if after_date < pre_fire_end:
-                        if year == fire_year:
+                        if post_year == fire_year:
                             continue
                         else:
                             break
@@ -176,27 +166,27 @@ class palsar:
 
                         dnbr = pre_fire_median.select('index').subtract(after_img.select('index')).rename('dnbr')
 
-                        sarHh_log_pre = pre_img.select('HH').first().pow(2).log10().multiply(10).subtract(83)
-                        sarHv_log_pre = pre_img.select('HV').first().pow(2).log10().multiply(10).subtract(83)
+                        sarHh_log_pre = pre_img.select('HH').first().pow(2).log10().multiply(10).subtract(83).rename('HH_pre')
+                        sarHv_log_pre = pre_img.select('HV').first().pow(2).log10().multiply(10).subtract(83).rename('HV_pre')
                         sarhvhh_pre = sarHv_log_pre.subtract(sarHh_log_pre)
 
-                        sarHh_log = dataset.select('HH').first().pow(2).log10().multiply(10).subtract(83)
-                        sarHv_log = dataset.select('HV').first().pow(2).log10().multiply(10).subtract(83)
+                        sarHh_log = dataset.select('HH').first().pow(2).log10().multiply(10).subtract(83).rename('HH_post')
+                        sarHv_log = dataset.select('HV').first().pow(2).log10().multiply(10).subtract(83).rename('HV_post')
                         sarHvhh = sarHv_log.subtract(sarHh_log)
 
                         logrt_HH = sarHh_log_pre.subtract(sarHh_log)
                         logrt_HV = sarHv_log_pre.subtract(sarHv_log)
                         logrtHvhh = sarHvhh.subtract(sarhvhh_pre).rename('HV-HH')
 
-                        landAreaImg = polygons.reduceToImage(properties=['area'], reducer=ee.Reducer.first()).rename('polygons')
+                        landAreaImg = polygons.reduceToImage(properties=['Id'], reducer=ee.Reducer.first()).rename('polygons')
 
-                        composite = ee.Image([logrt_HH, logrt_HV, logrtHvhh, landAreaImg.gt(0), dnbr])
+                        composite = ee.Image([sarHh_log_pre, sarHv_log_pre, sarHh_log, sarHv_log, landAreaImg.gt(0), dnbr, logrt_HH, logrt_HV, logrtHvhh])
 
                         id = str(poly.get('Id').getInfo())
-                        dir = 'palsar_eva/' + land_cover + '/' + id + '_' + str(year) + '/' + str(year)
+                        dir = 'palsar_eva/' + land_cover + '/' + id + '_' + str(post_year) + '/' + str(post_year)
                         image_task = ee.batch.Export.image.toCloudStorage(
                             image=composite.toFloat(),
-                            description='Image Export:' + land_cover + '_' + id + '_' + str(year),
+                            description='Image Export:' + land_cover + '_' + id + '_' + str(post_year),
                             fileNamePrefix=dir,
                             bucket='ai4wildfire',
                             scale=25,
@@ -204,7 +194,7 @@ class palsar:
                             region=bbox,
                         )
                         image_task.start()
-                        print('Start with image task (id: {}).'.format('Image Export:' + land_cover + '_' + id + '_' + str(year)))
+                        print('Start with image task (id: {}).'.format('Image Export:' + land_cover + '_' + id + '_' + str(post_year)))
 
 
 
@@ -216,15 +206,19 @@ class palsar:
         bucket = storage_client.bucket('ai4wildfire')
         blobs = bucket.list_blobs(prefix='palsar_eva')
         for blob in blobs:
-            if blob.time_created.date() < datetime.date.today()-datetime.timedelta(days=2):
+            if blob.time_created.date() < datetime.datetime.strptime('2022-04-10', '%Y-%m-%d').date():
                 continue
             filename = blob.name
-            path = os.path.dirname(filename)
-            if not os.path.exists(path):
-                os.makedirs(path)
-            blob.download_to_filename(filename)
-            print(
-                "Blob {} downloaded to {}.".format(
-                    filename, filename
+
+            id = filename.split('/')[2][:8]
+            land_cover = filename.split('/')[1]
+            if int(id) in list(config_eva.get(land_cover).keys()):
+                path = os.path.dirname(filename)
+                if not os.path.exists(path):
+                    os.makedirs(path)
+                blob.download_to_filename(filename)
+                print(
+                    "Blob {} downloaded to {}.".format(
+                        filename, filename
+                    )
                 )
-            )

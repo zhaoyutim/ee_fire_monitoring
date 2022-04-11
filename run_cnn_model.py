@@ -19,9 +19,9 @@ def get_dateset(batch_size):
     train_dataset = np.load('/geoinfo_vol1/zhao2/proj2_dataset/proj2_train.npy')
     # val_dataset = np.load('/geoinfo_vol1/zhao2/proj2_dataset/proj2_test.npy')
     print(train_dataset.shape)
-    y_dataset = train_dataset[:,:,:,3]>0
+    y_dataset = train_dataset[:,:,:,4]>0
     # y_dataset_val = val_dataset[:,:,:,3]>0
-    x_train, x_val, y_train, y_val = train_test_split(train_dataset[:,:,:,:3], y_dataset, test_size=0.2, random_state=0)
+    x_train, x_val, y_train, y_val = train_test_split(train_dataset[:,:,:,:4], y_dataset, test_size=0.2, random_state=0)
     def make_generator(inputs, labels):
         def _generator():
             for input, label in zip(inputs, labels):
@@ -86,14 +86,14 @@ if __name__=='__main__':
     strategy = tf.distribute.MirroredStrategy()
     with strategy.scope():
         if model_name == 'fpn':
-            input = tf.keras.Input(shape=(None, None, 3))
+            input = tf.keras.Input(shape=(None, None, 4))
             conv1 = tf.keras.layers.Conv2D(3, 3, activation = 'linear', padding = 'same', kernel_initializer = 'he_normal')(input)
             basemodel = FPN(backbone, encoder_weights='imagenet', activation='sigmoid', classes=1)
             output = basemodel(conv1)
             model = tf.keras.Model(input, output, name=model_name)
 
         elif model_name == 'unet':
-            input = tf.keras.Input(shape=(None, None, 3))
+            input = tf.keras.Input(shape=(None, None, 4))
             conv1 = tf.keras.layers.Conv2D(3, 3, activation = 'linear', padding = 'same', kernel_initializer = 'he_normal')(input)
             if backbone == 'None':
                 basemodel = Unet(encoder_weights='imagenet', activation='sigmoid')
@@ -104,14 +104,14 @@ if __name__=='__main__':
             model = tf.keras.Model(input, output, name=model_name)
 
         elif model_name == 'linknet':
-            input = tf.keras.Input(shape=(None, None, 3))
+            input = tf.keras.Input(shape=(None, None, 4))
             conv1 = tf.keras.layers.Conv2D(3, 3, activation = 'linear', padding = 'same', kernel_initializer = 'he_normal')(input)
             basemodel = Linknet(backbone, encoder_weights='imagenet', activation='sigmoid', classes=1)
             output = basemodel(conv1)
             model = tf.keras.Model(input, output, name=model_name)
 
         elif model_name == 'pspnet':
-            input = tf.keras.Input(shape=(None, None, 3))
+            input = tf.keras.Input(shape=(None, None, 4))
             input_resize = tf.keras.layers.Resizing(384,384)(input)
             conv1 = tf.keras.layers.Conv2D(3, 3, activation = 'linear', padding = 'same', kernel_initializer = 'he_normal')(input_resize)
             basemodel = PSPNet(backbone, activation='sigmoid', classes=1)
