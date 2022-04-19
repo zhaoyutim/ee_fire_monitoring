@@ -150,7 +150,7 @@ if __name__=='__main__':
             model = tf.keras.Model(input, output, name=model_name)
         model.summary()
 
-        optimizer = tfa.optimizers.SGDW(
+        optimizer = tfa.optimizers.AdamW(
             learning_rate=learning_rate, weight_decay=weight_decay, momentum=0.9
         )
 
