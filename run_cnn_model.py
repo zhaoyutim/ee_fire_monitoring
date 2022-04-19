@@ -151,7 +151,7 @@ if __name__=='__main__':
         model.summary()
 
         optimizer = tfa.optimizers.AdamW(
-            learning_rate=learning_rate, weight_decay=weight_decay, momentum=0.9
+            learning_rate=learning_rate, weight_decay=weight_decay
         )
 
         model.compile(optimizer, loss=bce_jaccard_loss, metrics=[iou_score, f1_score])
