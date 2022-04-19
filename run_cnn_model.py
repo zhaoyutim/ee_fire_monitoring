@@ -119,7 +119,7 @@ if __name__=='__main__':
             output_resize = tf.keras.layers.Resizing(256,256)(output)
             model = tf.keras.Model(input, output_resize, name=model_name)
         elif model_name == 'swinunet':
-            input = tf.keras.Input(shape=(256, 256, 3))
+            input = tf.keras.Input(shape=(256, 256, 4))
             input_resize = tf.keras.layers.Resizing(224,224)(input)
             # basemodel = models.swin_unet_2d((224, 224, 3), filter_num_begin=64, n_labels=1, depth=4, stack_num_down=2, stack_num_up=2,
             #                             patch_size=(2, 2), num_heads=[3, 6, 12, 24], window_size=[7, 7, 7, 7], num_mlp=512,
@@ -131,7 +131,7 @@ if __name__=='__main__':
             output_resize = tf.keras.layers.Resizing(256,256)(output)
             model = tf.keras.Model(input, output_resize, name=model_name)
         elif model_name == 'transunet':
-            input = tf.keras.Input(shape=(None, None, 3))
+            input = tf.keras.Input(shape=(None, None, 4))
             conv1 = tf.keras.layers.Conv2D(3, 3, activation = 'linear', padding = 'same', kernel_initializer = 'he_normal')(input)
             basemodel = models.transunet_2d((256, 256, 3), filter_num=[64, 128, 256, 512], n_labels=1, stack_num_down=2, stack_num_up=2,
                                         embed_dim=256, num_mlp=768, num_heads=3, num_transformer=12,
@@ -140,7 +140,7 @@ if __name__=='__main__':
             output = basemodel(conv1)
             model = tf.keras.Model(input, output, name=model_name)
         elif model_name == 'unet_2d':
-            input = tf.keras.Input(shape=(None, None, 3))
+            input = tf.keras.Input(shape=(None, None, 4))
             conv1 = tf.keras.layers.Conv2D(3, 3, activation = 'linear', padding = 'same', kernel_initializer = 'he_normal')(input)
             basemodel = models.unet_2d((None, None, 3), [64, 128, 256, 512, 1024], n_labels=1,
                                        stack_num_down=2, stack_num_up=1,
