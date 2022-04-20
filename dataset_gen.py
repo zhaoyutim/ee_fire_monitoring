@@ -53,6 +53,7 @@ def dataset_gen():
     file_list = glob.glob('palsar/*/*/*.tif')
     file_list.sort()
     dataset_train_list = []
+    dataset_val_list = []
     for idx in range(len(file_list)):
         file_name = file_list[idx]
         print(file_name)
@@ -68,7 +69,7 @@ def dataset_gen():
         data_output = np.zeros((tif_array.shape[0], tif_array.shape[1], 5))
         for i in range(4):
             data_output[:, :, i] = remove_outliers(tif_array[:, :, i], 1)
-            data_output[:, :, i] = np.nan_to_num(standardization(data_output[:, :, i]))
+            # data_output[:, :, i] = np.nan_to_num(standardization(data_output[:, :, i]))
         # img = (tif_array[:, :, :3] - tif_array[:, :, :3].min()) / (
         #             tif_array[:, :, :3].max() - tif_array[:, :, :3].min())
         # plt.imshow(img)
@@ -84,11 +85,17 @@ def dataset_gen():
         data_index_x = size_x // 256
         for i in range(data_index_x):
             for j in range(data_index_y):
-                dataset_train_list.append(data_output[i * 256:(i + 1) * 256, j * 256:(j + 1) * 256, :])
+                if (i*data_index_y+j)<int(data_index_y*data_index_x*0.7):
+                    dataset_train_list.append(data_output[i * 256:(i + 1) * 256, j * 256:(j + 1) * 256, :])
+                else:
+                    dataset_val_list.append(data_output[i * 256:(i + 1) * 256, j * 256:(j + 1) * 256, :])
 
     dataset_train = np.stack(dataset_train_list, axis=0)
-    np.save('dataset/proj2_train.npy', dataset_train)
-    return dataset_train
+    dataset_val = np.stack(dataset_val_list, axis=0)
+
+    np.save('dataset/proj2_train_4chan.npy', dataset_train)
+    np.save('dataset/proj2_val_4chan.npy', dataset_val)
+    return dataset_train, dataset_val
 
 
 def dataset_eva_gen():
@@ -113,19 +120,19 @@ def dataset_eva_gen():
                 img = np.zeros((tif_array.shape[0], tif_array.shape[1], 3))
                 for i in range(4):
                     data_output[:, :, i] = remove_outliers(tif_array[:, :, i], 1)
-                    data_output[:, :, i] = np.nan_to_num(standardization(data_output[:, :, i]))
+                    # data_output[:, :, i] = np.nan_to_num(standardization(data_output[:, :, i]))
                 img = (tif_array[:, :, :3] - tif_array[:, :, :3].min()) / (
                             tif_array[:, :, :3].max() - tif_array[:, :, :3].min())
-                # plt.imshow(img)
-                # plt.show()
+                plt.imshow(img)
+                plt.show()
                 if bbox == 1:
                     data_output[:, :, 4] = np.logical_and(tif_array[:, :, 5] > th, tif_array[:, :, 4] > 0)
                 else:
                     data_output[:, :, 4] = tif_array[:, :, 5] > th
-                # plt.title('c')
-                # plt.imshow(data_output[:, :, 4], cmap='Reds')
-                # plt.savefig('label', bbox_inches='tight')
-                # plt.show()
+                plt.title('c')
+                plt.imshow(data_output[:, :, 4], cmap='Reds')
+                plt.savefig('label', bbox_inches='tight')
+                plt.show()
 
                 data_index_y = size_y // overlap
                 data_index_x = size_x // overlap
@@ -141,7 +148,7 @@ def dataset_eva_gen_swe():
     land_covers = ['savannas']
     for land_cover in land_covers:
         file_list = glob.glob('palsar_eva/'+land_cover+'/*/*.tif')
-        overlap = 192
+        overlap = 128
         for idx in range(len(file_list)):
             file_name = file_list[idx]
             dataset_eva_list = []
@@ -155,21 +162,20 @@ def dataset_eva_gen_swe():
                 _, size_x, size_y = tif_array.shape
                 tif_array = tif_array.transpose((1, 2, 0))
                 tif_array = np.nan_to_num(tif_array)
-                data_output = np.zeros((tif_array.shape[0], tif_array.shape[1], 4))
+                data_output = np.zeros((tif_array.shape[0], tif_array.shape[1], 5))
                 img = np.zeros((tif_array.shape[0], tif_array.shape[1], 3))
-                for i in range(3):
+                for i in range(4):
                     data_output[:, :, i] = remove_outliers(tif_array[:, :, i], 1)
-                    data_output[:, :, i] = np.abs(np.nan_to_num(standardization(data_output[:, :, i])))
-                img = (data_output[:, :, :3] - data_output[:, :, :3].min()) / (
-                        data_output[:, :, :3].max() - data_output[:, :, :3].min())
+                    # data_output[:, :, i] = np.abs(np.nan_to_num(standardization(data_output[:, :, i])))
+                img = (tif_array[:, :, 4:7] - tif_array[:, :, 4:7].min()) / (tif_array[:, :, 4:7].max() - tif_array[:, :, 4:7].min())
                 plt.imshow(img)
                 plt.show()
-                label = np.nan_to_num(tif_array[:, :, 3])
-                data_output[:, :, 3] = label > 0
+                label = np.nan_to_num(tif_array[:, :, 7])
+                data_output[:, :, 4] = label > 0
                 plt.title('c')
-                # plt.imshow(data_output[:, :, 3], cmap='Reds')
-                # plt.savefig('label', bbox_inches='tight')
-                # plt.show()
+                plt.imshow(data_output[:, :, 4], cmap='Reds')
+                plt.savefig('label', bbox_inches='tight')
+                plt.show()
 
                 data_index_y = size_y // overlap
                 data_index_x = size_x // overlap
@@ -183,5 +189,5 @@ def dataset_eva_gen_swe():
 
 if __name__ == '__main__':
     dataset_gen()
-    dataset_eva_gen()
+    # dataset_eva_gen()
     # dataset_eva_gen_swe()

@@ -17,11 +17,11 @@ from model.swintransformer import SwinTransformer
 def get_dateset(batch_size):
 
     train_dataset = np.load('/geoinfo_vol1/zhao2/proj2_dataset/proj2_train_4chan.npy')
-    # val_dataset = np.load('/geoinfo_vol1/zhao2/proj2_dataset/proj2_test.npy')
+    val_dataset = np.load('/geoinfo_vol1/zhao2/proj2_dataset/proj2_val_4chan.npy')
     print(train_dataset.shape)
     y_dataset = train_dataset[:,:,:,4]>0
-    # y_dataset_val = val_dataset[:,:,:,3]>0
-    x_train, x_val, y_train, y_val = train_test_split(train_dataset[:,:,:,:4], y_dataset, test_size=0.2, random_state=0)
+    y_dataset_val = val_dataset[:,:,:,4]>0
+    # x_train, x_val, y_train, y_val = train_test_split(train_dataset[:,:,:,:4], y_dataset, test_size=0.2, random_state=0)
     def make_generator(inputs, labels):
         def _generator():
             for input, label in zip(inputs, labels):
@@ -30,16 +30,16 @@ def get_dateset(batch_size):
         return _generator
 
 
-    train_dataset = tf.data.Dataset.from_generator(make_generator(x_train, y_train),
+    train_dataset = tf.data.Dataset.from_generator(make_generator(train_dataset, y_dataset),
                                                    (tf.float32, tf.float32))
-    val_dataset = tf.data.Dataset.from_generator(make_generator(x_val, y_val),
+    val_dataset = tf.data.Dataset.from_generator(make_generator(val_dataset, y_dataset_val),
                                                  (tf.float32, tf.float32))
 
     train_dataset = train_dataset.shuffle(batch_size).repeat(MAX_EPOCHS).batch(batch_size)
     val_dataset = val_dataset.shuffle(batch_size).repeat(MAX_EPOCHS).batch(batch_size)
 
-    steps_per_epoch = x_train.shape[0]//batch_size
-    validation_steps = x_val.shape[0]//batch_size
+    steps_per_epoch = train_dataset.shape[0]//batch_size
+    validation_steps = val_dataset.shape[0]//batch_size
 
     return train_dataset, val_dataset, steps_per_epoch, validation_steps
 
