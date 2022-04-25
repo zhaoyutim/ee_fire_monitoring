@@ -20,8 +20,8 @@ def get_dateset(batch_size):
     train_array = np.load('/geoinfo_vol1/zhao2/proj2_dataset/proj2_train_4chan.npy')
     val_array = np.load('/geoinfo_vol1/zhao2/proj2_dataset/proj2_val_4chan.npy')
     print(train_array.shape)
-    y_dataset = train_array[:,:,:,4]>0
-    y_dataset_val = val_array[:,:,:,4]>0
+    y_dataset = train_array[:,:,:,7]>0
+    y_dataset_val = val_array[:,:,:,7]>0
     # x_train, x_val, y_train, y_val = train_test_split(train_dataset[:,:,:,:4], y_dataset, test_size=0.2, random_state=0)
     def make_generator(inputs, labels):
         def _generator():
@@ -31,9 +31,9 @@ def get_dateset(batch_size):
         return _generator
 
 
-    train_dataset = tf.data.Dataset.from_generator(make_generator(train_array[:,:,:,:4], y_dataset),
+    train_dataset = tf.data.Dataset.from_generator(make_generator(train_array[:,:,:,:7], y_dataset),
                                                    (tf.float32, tf.float32))
-    val_dataset = tf.data.Dataset.from_generator(make_generator(val_array[:,:,:,:4], y_dataset_val),
+    val_dataset = tf.data.Dataset.from_generator(make_generator(val_array[:,:,:,:7], y_dataset_val),
                                                  (tf.float32, tf.float32))
 
     train_dataset = train_dataset.shuffle(batch_size).repeat(MAX_EPOCHS).batch(batch_size)

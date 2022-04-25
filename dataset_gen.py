@@ -66,7 +66,7 @@ def dataset_gen():
         _, size_x, size_y = tif_array.shape
         tif_array = tif_array.transpose((1, 2, 0))
         tif_array = np.nan_to_num(tif_array)
-        data_output = np.zeros((tif_array.shape[0], tif_array.shape[1], 7))
+        data_output = np.zeros((tif_array.shape[0], tif_array.shape[1], 8))
         for i in range(4):
             data_output[:, :, i] = remove_outliers(tif_array[:, :, i], 1)
             # data_output[:, :, i] = np.nan_to_num(standardization(data_output[:, :, i]))
@@ -77,9 +77,9 @@ def dataset_gen():
         # plt.imshow(img)
         # plt.show()
         if bbox == 1:
-            data_output[:, :, 4] = np.logical_and(tif_array[:, :, 5] > th, tif_array[:, :, 4] > 0)
+            data_output[:, :, 7] = np.logical_and(tif_array[:, :, 5] > th, tif_array[:, :, 4] > 0)
         else:
-            data_output[:, :, 4] = tif_array[:, :, 5] > th
+            data_output[:, :, 7] = tif_array[:, :, 5] > th
         # img = data_output[:, :, 4]
         # plt.imshow(img)
         # plt.show()
@@ -119,7 +119,7 @@ def dataset_eva_gen():
                 _, size_x, size_y = tif_array.shape
                 tif_array = tif_array.transpose((1, 2, 0))
                 tif_array = np.nan_to_num(tif_array)
-                data_output = np.zeros((tif_array.shape[0], tif_array.shape[1], 7))
+                data_output = np.zeros((tif_array.shape[0], tif_array.shape[1], 8))
                 img = np.zeros((tif_array.shape[0], tif_array.shape[1], 3))
                 for i in range(4):
                     data_output[:, :, i] = remove_outliers(tif_array[:, :, i], 1)
@@ -131,9 +131,9 @@ def dataset_eva_gen():
                 # plt.imshow(img)
                 # plt.show()
                 if bbox == 1:
-                    data_output[:, :, 4] = np.logical_and(tif_array[:, :, 5] > th, tif_array[:, :, 4] > 0)
+                    data_output[:, :, 7] = np.logical_and(tif_array[:, :, 5] > th, tif_array[:, :, 4] > 0)
                 else:
-                    data_output[:, :, 4] = tif_array[:, :, 5] > th
+                    data_output[:, :, 7] = tif_array[:, :, 5] > th
                 plt.title('c')
                 plt.imshow(data_output[:, :, 4], cmap='Reds')
                 plt.savefig('label', bbox_inches='tight')
