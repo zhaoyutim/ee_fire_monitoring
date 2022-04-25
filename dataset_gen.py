@@ -85,7 +85,7 @@ def dataset_gen():
         data_index_x = size_x // 256
         for i in range(data_index_x):
             for j in range(data_index_y):
-                if (i*data_index_y+j)<int(data_index_y*data_index_x*0.7):
+                if (i*data_index_y+j)<int(data_index_y*data_index_x*0.8):
                     dataset_train_list.append(data_output[i * 256:(i + 1) * 256, j * 256:(j + 1) * 256, :])
                 else:
                     dataset_val_list.append(data_output[i * 256:(i + 1) * 256, j * 256:(j + 1) * 256, :])

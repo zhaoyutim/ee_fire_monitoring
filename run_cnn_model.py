@@ -4,6 +4,7 @@ import numpy as np
 import tensorflow as tf
 import tensorflow_addons as tfa
 import wandb
+from segmentation_models.utils import set_trainable
 from sklearn.model_selection import train_test_split
 import segmentation_models as sm
 from wandb.integration.keras import WandbCallback
@@ -76,6 +77,7 @@ if __name__=='__main__':
     sm.set_framework('tf.keras')
     batch_size=args.b
     MAX_EPOCHS=100
+    fine_tune=True
     learning_rate = args.lr
     weight_decay = learning_rate/10
 
@@ -88,7 +90,7 @@ if __name__=='__main__':
         if model_name == 'fpn':
             input = tf.keras.Input(shape=(None, None, 4))
             conv1 = tf.keras.layers.Conv2D(3, 3, activation = 'linear', padding = 'same', kernel_initializer = 'he_normal')(input)
-            basemodel = FPN(backbone, encoder_weights='imagenet', activation='sigmoid', classes=1)
+            basemodel = FPN(backbone, encoder_weights='imagenet', activation='sigmoid', classes=1, encoder_freeze=True)
             output = basemodel(conv1)
             model = tf.keras.Model(input, output, name=model_name)
 
@@ -96,9 +98,9 @@ if __name__=='__main__':
             input = tf.keras.Input(shape=(None, None, 4))
             conv1 = tf.keras.layers.Conv2D(3, 3, activation = 'linear', padding = 'same', kernel_initializer = 'he_normal')(input)
             if backbone == 'None':
-                basemodel = Unet(encoder_weights='imagenet', activation='sigmoid')
+                basemodel = Unet(encoder_weights='imagenet', activation='sigmoid', encoder_freeze=True)
             else:
-                basemodel = Unet(backbone, encoder_weights='imagenet', activation='sigmoid')
+                basemodel = Unet(backbone, encoder_weights='imagenet', activation='sigmoid', encoder_freeze=True)
             basemodel.summary()
             output = basemodel(conv1)
             model = tf.keras.Model(input, output, name=model_name)
@@ -106,7 +108,7 @@ if __name__=='__main__':
         elif model_name == 'linknet':
             input = tf.keras.Input(shape=(None, None, 4))
             conv1 = tf.keras.layers.Conv2D(3, 3, activation = 'linear', padding = 'same', kernel_initializer = 'he_normal')(input)
-            basemodel = Linknet(backbone, encoder_weights='imagenet', activation='sigmoid', classes=1)
+            basemodel = Linknet(backbone, encoder_weights='imagenet', activation='sigmoid', classes=1, encoder_freeze=True)
             output = basemodel(conv1)
             model = tf.keras.Model(input, output, name=model_name)
 
@@ -114,7 +116,7 @@ if __name__=='__main__':
             input = tf.keras.Input(shape=(None, None, 4))
             input_resize = tf.keras.layers.Resizing(384,384)(input)
             conv1 = tf.keras.layers.Conv2D(3, 3, activation = 'linear', padding = 'same', kernel_initializer = 'he_normal')(input_resize)
-            basemodel = PSPNet(backbone, activation='sigmoid', classes=1)
+            basemodel = PSPNet(backbone, activation='sigmoid', classes=1, encoder_freeze=True)
             output = basemodel(conv1)
             output_resize = tf.keras.layers.Resizing(256,256)(output)
             model = tf.keras.Model(input, output_resize, name=model_name)
@@ -164,6 +166,17 @@ if __name__=='__main__':
     if load_weights== 'yes':
         model.load_weights('/geoinfo_vol1/zhao2/proj2_model/proj2_'+model_name+'_pretrained_'+backbone)
     else:
+        if fine_tune==True:
+            model.fit(
+                train_dataset,
+                batch_size=batch_size,
+                steps_per_epoch=steps_per_epoch,
+                validation_data=val_dataset,
+                validation_steps=validation_steps,
+                epochs=2,
+                callbacks=[WandbCallback()],
+            )
+        set_trainable(model)
         print('training in progress')
         history = model.fit(
             train_dataset,
