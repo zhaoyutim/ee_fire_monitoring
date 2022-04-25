@@ -66,10 +66,12 @@ def dataset_gen():
         _, size_x, size_y = tif_array.shape
         tif_array = tif_array.transpose((1, 2, 0))
         tif_array = np.nan_to_num(tif_array)
-        data_output = np.zeros((tif_array.shape[0], tif_array.shape[1], 5))
+        data_output = np.zeros((tif_array.shape[0], tif_array.shape[1], 7))
         for i in range(4):
             data_output[:, :, i] = remove_outliers(tif_array[:, :, i], 1)
             # data_output[:, :, i] = np.nan_to_num(standardization(data_output[:, :, i]))
+        for i in range(3):
+            data_output[:, :, i + 4] = remove_outliers(tif_array[:, :, i + 6], 1)
         # img = (tif_array[:, :, :3] - tif_array[:, :, :3].min()) / (
         #             tif_array[:, :, :3].max() - tif_array[:, :, :3].min())
         # plt.imshow(img)
@@ -78,7 +80,7 @@ def dataset_gen():
             data_output[:, :, 4] = np.logical_and(tif_array[:, :, 5] > th, tif_array[:, :, 4] > 0)
         else:
             data_output[:, :, 4] = tif_array[:, :, 5] > th
-        img = data_output[:, :, 4]
+        # img = data_output[:, :, 4]
         # plt.imshow(img)
         # plt.show()
         data_index_y = size_y // 256
@@ -95,6 +97,7 @@ def dataset_gen():
 
     np.save('dataset/proj2_train_4chan.npy', dataset_train)
     np.save('dataset/proj2_val_4chan.npy', dataset_val)
+
     return dataset_train, dataset_val
 
 
@@ -116,15 +119,17 @@ def dataset_eva_gen():
                 _, size_x, size_y = tif_array.shape
                 tif_array = tif_array.transpose((1, 2, 0))
                 tif_array = np.nan_to_num(tif_array)
-                data_output = np.zeros((tif_array.shape[0], tif_array.shape[1], 5))
+                data_output = np.zeros((tif_array.shape[0], tif_array.shape[1], 7))
                 img = np.zeros((tif_array.shape[0], tif_array.shape[1], 3))
                 for i in range(4):
                     data_output[:, :, i] = remove_outliers(tif_array[:, :, i], 1)
+                for i in range(3):
+                    data_output[:, :, i + 4] = remove_outliers(tif_array[:, :, i + 6], 1)
                     # data_output[:, :, i] = np.nan_to_num(standardization(data_output[:, :, i]))
-                img = (tif_array[:, :, :3] - tif_array[:, :, :3].min()) / (
-                            tif_array[:, :, :3].max() - tif_array[:, :, :3].min())
-                plt.imshow(img)
-                plt.show()
+                # img = (tif_array[:, :, :3] - tif_array[:, :, :3].min()) / (
+                #             tif_array[:, :, :3].max() - tif_array[:, :, :3].min())
+                # plt.imshow(img)
+                # plt.show()
                 if bbox == 1:
                     data_output[:, :, 4] = np.logical_and(tif_array[:, :, 5] > th, tif_array[:, :, 4] > 0)
                 else:
@@ -189,5 +194,5 @@ def dataset_eva_gen_swe():
 
 if __name__ == '__main__':
     dataset_gen()
-    # dataset_eva_gen()
+    dataset_eva_gen()
     # dataset_eva_gen_swe()

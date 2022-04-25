@@ -88,14 +88,14 @@ if __name__=='__main__':
     strategy = tf.distribute.MirroredStrategy()
     with strategy.scope():
         if model_name == 'fpn':
-            input = tf.keras.Input(shape=(None, None, 4))
+            input = tf.keras.Input(shape=(None, None, 7))
             conv1 = tf.keras.layers.Conv2D(3, 3, activation = 'linear', padding = 'same', kernel_initializer = 'he_normal')(input)
             basemodel = FPN(backbone, encoder_weights='imagenet', activation='sigmoid', classes=1, encoder_freeze=True)
             output = basemodel(conv1)
             model = tf.keras.Model(input, output, name=model_name)
 
         elif model_name == 'unet':
-            input = tf.keras.Input(shape=(None, None, 4))
+            input = tf.keras.Input(shape=(None, None, 7))
             conv1 = tf.keras.layers.Conv2D(3, 3, activation = 'linear', padding = 'same', kernel_initializer = 'he_normal')(input)
             if backbone == 'None':
                 basemodel = Unet(encoder_weights='imagenet', activation='sigmoid', encoder_freeze=True)
@@ -106,14 +106,14 @@ if __name__=='__main__':
             model = tf.keras.Model(input, output, name=model_name)
 
         elif model_name == 'linknet':
-            input = tf.keras.Input(shape=(None, None, 4))
+            input = tf.keras.Input(shape=(None, None, 7))
             conv1 = tf.keras.layers.Conv2D(3, 3, activation = 'linear', padding = 'same', kernel_initializer = 'he_normal')(input)
             basemodel = Linknet(backbone, encoder_weights='imagenet', activation='sigmoid', classes=1, encoder_freeze=True)
             output = basemodel(conv1)
             model = tf.keras.Model(input, output, name=model_name)
 
         elif model_name == 'pspnet':
-            input = tf.keras.Input(shape=(None, None, 4))
+            input = tf.keras.Input(shape=(None, None, 7))
             input_resize = tf.keras.layers.Resizing(384,384)(input)
             conv1 = tf.keras.layers.Conv2D(3, 3, activation = 'linear', padding = 'same', kernel_initializer = 'he_normal')(input_resize)
             basemodel = PSPNet(backbone, activation='sigmoid', classes=1, encoder_freeze=True)
@@ -133,7 +133,7 @@ if __name__=='__main__':
             output_resize = tf.keras.layers.Resizing(256,256)(output)
             model = tf.keras.Model(input, output_resize, name=model_name)
         elif model_name == 'transunet':
-            input = tf.keras.Input(shape=(None, None, 4))
+            input = tf.keras.Input(shape=(None, None, 7))
             conv1 = tf.keras.layers.Conv2D(3, 3, activation = 'linear', padding = 'same', kernel_initializer = 'he_normal')(input)
             basemodel = models.transunet_2d((256, 256, 3), filter_num=[64, 128, 256, 512], n_labels=1, stack_num_down=2, stack_num_up=2,
                                         embed_dim=256, num_mlp=768, num_heads=3, num_transformer=12,
@@ -142,7 +142,7 @@ if __name__=='__main__':
             output = basemodel(conv1)
             model = tf.keras.Model(input, output, name=model_name)
         elif model_name == 'unet_2d':
-            input = tf.keras.Input(shape=(None, None, 4))
+            input = tf.keras.Input(shape=(None, None, 7))
             conv1 = tf.keras.layers.Conv2D(3, 3, activation = 'linear', padding = 'same', kernel_initializer = 'he_normal')(input)
             basemodel = models.unet_2d((None, None, 3), [64, 128, 256, 512, 1024], n_labels=1,
                                        stack_num_down=2, stack_num_up=1,

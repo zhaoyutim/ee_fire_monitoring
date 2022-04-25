@@ -105,14 +105,14 @@ class palsar:
                             fileNamePrefix=dir,
                             bucket='ai4wildfire',
                             scale=25,
-                            maxPixels=1e9,
+                            maxPixels=1e11,
                             region=bbox,
                         )
                         image_task.start()
                         print('Start with image task (id: {}).'.format('Image Export:' + land_cover + '_' + id + '_' + str(post_year)))
 
     def download_to_gcloud_evaluate(self):
-        land_covers = ['broadleaf', 'grasslands']
+        land_covers = ['needle', 'broadleaf', 'shrublands', 'savannas', 'grasslands', 'mixed']
         for land_cover in land_covers:
             id_list = ee.List(list(config_eva.get(land_cover).keys()))
             for y in range(2017,2021):
@@ -180,7 +180,7 @@ class palsar:
 
                         landAreaImg = polygons.reduceToImage(properties=['Id'], reducer=ee.Reducer.first()).rename('polygons')
 
-                        composite = ee.Image([sarHh_log_pre, sarHv_log_pre, sarHh_log, sarHv_log, landAreaImg.gt(0), dnbr])
+                        composite = ee.Image([sarHh_log_pre, sarHv_log_pre, sarHh_log, sarHv_log, landAreaImg.gt(0), dnbr, logrt_HH, logrt_HV, logrtHvhh])
 
                         id = str(poly.get('Id').getInfo())
                         dir = 'palsar_eva/' + land_cover + '/' + id + '_' + str(post_year) + '/' + str(post_year)
@@ -190,7 +190,7 @@ class palsar:
                             fileNamePrefix=dir,
                             bucket='ai4wildfire',
                             scale=25,
-                            maxPixels=1e9,
+                            maxPixels=1e11,
                             region=bbox,
                         )
                         image_task.start()
@@ -206,7 +206,7 @@ class palsar:
         bucket = storage_client.bucket('ai4wildfire')
         blobs = bucket.list_blobs(prefix='palsar_eva')
         for blob in blobs:
-            if blob.time_created.date() < datetime.datetime.strptime('2022-04-11', '%Y-%m-%d').date():
+            if blob.time_created.date() < datetime.datetime.strptime('2022-04-24', '%Y-%m-%d').date():
                 continue
             filename = blob.name
 
