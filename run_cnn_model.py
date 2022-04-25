@@ -176,7 +176,9 @@ if __name__=='__main__':
                 epochs=2,
                 callbacks=[WandbCallback()],
             )
-        set_trainable(model)
+        for layer in model.layers:
+            layer.trainable = True
+        model.compile(optimizer, loss=bce_jaccard_loss, metrics=[iou_score, f1_score])
         print('training in progress')
         history = model.fit(
             train_dataset,
