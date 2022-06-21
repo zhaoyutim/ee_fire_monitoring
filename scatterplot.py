@@ -45,13 +45,13 @@ def overview_backscatter():
         arr_list = []
         labels = []
         for i in range(3):
-            file_list = glob.glob('palsar_evaluate/'+land_cover+'/*.tif')
+            file_list = glob.glob('palsar_eva/'+land_cover+'/*/*.tif')
             burned_arr_list = []
             unburned_arr_list = []
             for file in file_list:
                 arr, _ = read_tiff(file)
-                burned_arr = np.nan_to_num(arr[i,:,:][arr[3,:,:]==1].reshape(-1))
-                unburned_arr = np.nan_to_num(arr[i,:,:][arr[3,:,:]!=1].reshape(-1))
+                burned_arr = np.nan_to_num(arr[i+6,:,:][arr[4,:,:]==1].reshape(-1))
+                unburned_arr = np.nan_to_num(arr[i+6,:,:][arr[4,:,:]!=1].reshape(-1))
                 burned_samples = np.random.choice(burned_arr, 5000)
                 unburned_samples = np.random.choice(unburned_arr, 5000)
                 burned_arr_list.append(burned_samples)

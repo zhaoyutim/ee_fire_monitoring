@@ -102,7 +102,7 @@ def dataset_gen():
 
 
 def dataset_eva_gen():
-    land_covers = ['needle', 'broadleaf', 'grasslands', 'shrublands', 'savannas', 'mixed']
+    land_covers = ['broadleaf']
     for land_cover in land_covers:
         file_list = glob.glob('palsar_eva/'+land_cover+'/*/*.tif')
         overlap = 128
@@ -135,17 +135,22 @@ def dataset_eva_gen():
                 else:
                     data_output[:, :, 7] = tif_array[:, :, 5] > th
                 plt.title('c')
-                plt.imshow(data_output[:, :, 4], cmap='Reds')
+                plt.imshow(data_output[:, :, 7], cmap='Reds')
                 plt.savefig('label', bbox_inches='tight')
                 plt.show()
 
                 data_index_y = size_y // overlap
                 data_index_x = size_x // overlap
+                while (data_index_x-1)*overlap+256>=size_x:
+                    data_index_x-=1
+                while (data_index_y-1)*overlap+256>=size_y:
+                    data_index_y-=1
                 for i in range(data_index_x):
                     for j in range(data_index_y):
                         if (i * overlap) + 256 < size_x and (j * overlap) + 256 < size_y:
                             dataset_eva_list.append(data_output[i * overlap: (i * overlap) + 256, j * overlap: (j * overlap) + 256, :])
                 dataset_eva = np.stack(dataset_eva_list, axis=0)
+                print(dataset_eva.shape)
                 np.save('dataset/' + landcover + fire_id + 'x' + str(data_index_x) + 'y' + str(data_index_y) + '.npy',
                         dataset_eva)
 
@@ -167,16 +172,16 @@ def dataset_eva_gen_swe():
                 _, size_x, size_y = tif_array.shape
                 tif_array = tif_array.transpose((1, 2, 0))
                 tif_array = np.nan_to_num(tif_array)
-                data_output = np.zeros((tif_array.shape[0], tif_array.shape[1], 5))
+                data_output = np.zeros((tif_array.shape[0], tif_array.shape[1], 8))
                 img = np.zeros((tif_array.shape[0], tif_array.shape[1], 3))
-                for i in range(4):
+                for i in range(7):
                     data_output[:, :, i] = remove_outliers(tif_array[:, :, i], 1)
                     # data_output[:, :, i] = np.abs(np.nan_to_num(standardization(data_output[:, :, i])))
-                img = (tif_array[:, :, 4:7] - tif_array[:, :, 4:7].min()) / (tif_array[:, :, 4:7].max() - tif_array[:, :, 4:7].min())
-                plt.imshow(img)
-                plt.show()
+                # img = (tif_array[:, :, 4:7] - tif_array[:, :, 4:7].min()) / (tif_array[:, :, 4:7].max() - tif_array[:, :, 4:7].min())
+                # plt.imshow(img)
+                # plt.show()
                 label = np.nan_to_num(tif_array[:, :, 7])
-                data_output[:, :, 4] = label > 0
+                data_output[:, :, 7] = label > 0
                 plt.title('c')
                 plt.imshow(data_output[:, :, 4], cmap='Reds')
                 plt.savefig('label', bbox_inches='tight')
@@ -193,6 +198,6 @@ def dataset_eva_gen_swe():
                         dataset_eva)
 
 if __name__ == '__main__':
-    dataset_gen()
-    dataset_eva_gen()
-    # dataset_eva_gen_swe()
+    # dataset_gen()
+    # dataset_eva_gen()
+    dataset_eva_gen_swe()
