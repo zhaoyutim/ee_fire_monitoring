@@ -15,10 +15,13 @@ from keras_unet_collection import models
 from model.swintransformer import SwinTransformer
 
 
-def get_dateset(batch_size):
-
-    train_array = np.load('/geoinfo_vol1/zhao2/proj2_dataset/proj2_train_4chan.npy')
-    val_array = np.load('/geoinfo_vol1/zhao2/proj2_dataset/proj2_val_4chan.npy')
+def get_dateset(batch_size, data):
+    if data == 'palsar':
+        train_array = np.load('/geoinfo_vol1/zhao2/proj2_dataset/proj2_train_7chan.npy')
+        val_array = np.load('/geoinfo_vol1/zhao2/proj2_dataset/proj2_val_7chan.npy')
+    else:
+        train_array = np.load('/geoinfo_vol1/zhao2/proj2_dataset/proj2_train_7chan_s1.npy')
+        val_array = np.load('/geoinfo_vol1/zhao2/proj2_dataset/proj2_val_7chan_s1.npy')
     print(train_array.shape)
     y_dataset = train_array[:,:,:,7]>0
     y_dataset_val = val_array[:,:,:,7]>0
@@ -70,6 +73,7 @@ if __name__=='__main__':
     parser.add_argument('-b', type=int, help='batch size')
     parser.add_argument('-bb', type=str, help='backbone')
     parser.add_argument('-lr', type=float, help='learning rate')
+    parser.add_argument('-data', type=str, help='dataset used')
     args = parser.parse_args()
     model_name = args.m
     load_weights = args.p
@@ -79,16 +83,28 @@ if __name__=='__main__':
     MAX_EPOCHS=100
     fine_tune=True
     learning_rate = args.lr
+    data = args.data
     weight_decay = learning_rate/10
 
-    train_dataset, val_dataset, steps_per_epoch, validation_steps = get_dateset(batch_size)
+    train_dataset, val_dataset, steps_per_epoch, validation_steps = get_dateset(batch_size, data)
 
     wandb_config(model_name, backbone)
 
     strategy = tf.distribute.MirroredStrategy()
+
+    data_augmentation = tf.keras.Sequential([
+        tf.keras.layers.RandomFlip("horizontal_and_vertical"),
+        tf.keras.layers.RandomRotation(0.2),
+    ])
+    resize_and_rescale = tf.keras.Sequential([
+        tf.keras.layers.Resizing(256, 256),
+        tf.keras.layers.Rescaling(1./255)
+    ])
     with strategy.scope():
         if model_name == 'fpn':
             input = tf.keras.Input(shape=(None, None, 7))
+            input = resize_and_rescale(input)
+            input = data_augmentation(input)
             conv1 = tf.keras.layers.Conv2D(3, 3, activation = 'linear', padding = 'same', kernel_initializer = 'he_normal')(input)
             basemodel = FPN(backbone, encoder_weights='imagenet', activation='sigmoid', classes=1, encoder_freeze=True)
             output = basemodel(conv1)
@@ -96,6 +112,8 @@ if __name__=='__main__':
 
         elif model_name == 'unet':
             input = tf.keras.Input(shape=(None, None, 7))
+            input = resize_and_rescale(input)
+            input = data_augmentation(input)
             conv1 = tf.keras.layers.Conv2D(3, 3, activation = 'linear', padding = 'same', kernel_initializer = 'he_normal')(input)
             if backbone == 'None':
                 basemodel = Unet(encoder_weights='imagenet', activation='sigmoid', encoder_freeze=True)
@@ -107,6 +125,8 @@ if __name__=='__main__':
 
         elif model_name == 'linknet':
             input = tf.keras.Input(shape=(None, None, 7))
+            input = resize_and_rescale(input)
+            input = data_augmentation(input)
             conv1 = tf.keras.layers.Conv2D(3, 3, activation = 'linear', padding = 'same', kernel_initializer = 'he_normal')(input)
             basemodel = Linknet(backbone, encoder_weights='imagenet', activation='sigmoid', classes=1, encoder_freeze=True)
             output = basemodel(conv1)
@@ -114,6 +134,8 @@ if __name__=='__main__':
 
         elif model_name == 'pspnet':
             input = tf.keras.Input(shape=(None, None, 7))
+            input = resize_and_rescale(input)
+            input = data_augmentation(input)
             input_resize = tf.keras.layers.Resizing(384,384)(input)
             conv1 = tf.keras.layers.Conv2D(3, 3, activation = 'linear', padding = 'same', kernel_initializer = 'he_normal')(input_resize)
             basemodel = PSPNet(backbone, activation='sigmoid', classes=1, encoder_freeze=True)

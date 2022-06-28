@@ -29,10 +29,10 @@ def write_tiff(file_path, arr, profile):
 def remove_outliers(x, outlierConstant):
     upper_quartile = np.percentile(x, 75)
     lower_quartile = np.percentile(x, 25)
-    print(upper_quartile, lower_quartile)
+    # print(upper_quartile, lower_quartile)
     IQR = (upper_quartile - lower_quartile) * outlierConstant
     quartileSet = (lower_quartile - IQR, upper_quartile + IQR)
-    print(quartileSet)
+    # print(quartileSet)
 
     result = x * (x >= quartileSet[0]) * (x <= quartileSet[1])
 
@@ -50,7 +50,7 @@ def normalization(x):
 
 
 def dataset_gen():
-    file_list = glob.glob('palsar/*/*/*.tif')
+    file_list = glob.glob('palsar_s1/*/*/*.tif')
     file_list.sort()
     dataset_train_list = []
     dataset_val_list = []
@@ -95,8 +95,8 @@ def dataset_gen():
     dataset_train = np.stack(dataset_train_list, axis=0)
     dataset_val = np.stack(dataset_val_list, axis=0)
 
-    np.save('dataset/proj2_train_4chan.npy', dataset_train)
-    np.save('dataset/proj2_val_4chan.npy', dataset_val)
+    np.save('dataset/proj2_train_7chan_s1.npy', dataset_train)
+    np.save('dataset/proj2_val_7chan_s1.npy', dataset_val)
 
     return dataset_train, dataset_val
 
@@ -198,6 +198,6 @@ def dataset_eva_gen_swe():
                         dataset_eva)
 
 if __name__ == '__main__':
-    # dataset_gen()
+    dataset_gen()
     # dataset_eva_gen()
-    dataset_eva_gen_swe()
+    # dataset_eva_gen_swe()

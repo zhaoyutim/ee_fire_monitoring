@@ -107,10 +107,22 @@ class palsar:
                         logrt_HV = sarHv_log_pre.subtract(sarHv_log)
                         logrtHvhh = sarHvhh.subtract(sarhvhh_pre).rename('HV-HH')
 
+                        sarVv_log_pre_s1 = pre_fire_median_s1.select('VV').rename('VV_pre')
+                        sarVh_log_pre_s1 = pre_fire_median_s1.select('VH').rename('VH_pre')
+                        sarVhvv_pre_s1 = sarVh_log_pre_s1.subtract(sarVv_log_pre_s1)
+
+                        sarVv_log_s1 = after_img_s1.select('VV').rename('VV_post')
+                        sarVh_log_s1 = after_img_s1.select('VH').rename('VH_post')
+                        sarVhvv_s1 = sarVh_log_s1.subtract(sarVv_log_s1)
+
+                        logrt_VV_s1 = sarVv_log_pre_s1.subtract(sarVv_log_s1)
+                        logrt_VH_s1 = sarVh_log_pre_s1.subtract(sarVh_log_s1)
+                        logrtVvvh_s1 = sarVhvv_s1.subtract(sarVhvv_pre_s1).rename('VV-VH')
+
                         landAreaImg = polygons.reduceToImage(properties=['Id'], reducer=ee.Reducer.first()).rename('polygons')
 
                         composite = ee.Image([sarHh_log_pre, sarHv_log_pre, sarHh_log, sarHv_log, landAreaImg.gt(0), dnbr, logrt_HH, logrt_HV, logrtHvhh])
-                        composite_s1 = ee.Image([pre_fire_median_s1, after_img_s1])
+                        composite_s1 = ee.Image([sarVv_log_pre_s1, sarVh_log_pre_s1, sarVv_log_s1, sarVh_log_s1, landAreaImg.gt(0), dnbr, logrt_VV_s1, logrt_VH_s1, logrtVvvh_s1])
                         id = str(poly.get('Id').getInfo())
                         if dataset=='train':
                             dir = 'palsar_s1' + '/' + land_cover + '/' + id + '_' + str(post_year) + '/' + str(post_year)
@@ -141,7 +153,7 @@ class palsar:
                             maxPixels=1e11,
                             region=bbox,
                         )
-                        image_task.start()
+                        # image_task.start()
                         if dataset=='train':
                             print('Start with image task (id: {}).'.format('Palsar Image Export:' + land_cover + '_' + id + '_' + str(post_year)))
                         else:
