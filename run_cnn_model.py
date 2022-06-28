@@ -54,9 +54,10 @@ def dice_coef(y_true, y_pred):
     smooth = 1.0
     return 1-(2.0*intersection+smooth)/(tf.math.reduce_sum(y_true_f)+tf.math.reduce_sum(y_pred_f)+smooth)
 
-def wandb_config(model_name, backbone):
+def wandb_config(model_name, backbone, batch_size, learning_rate):
     wandb.login()
     wandb.init(project='proj2_palsar', entity="zhaoyutim")
+    wandb.run.name = 'model_name' + str(model_name) + 'backbone_'+ str(backbone)+ 'batchsize_'+str(batch_size)+'learning_rate_'+str(learning_rate)
     wandb.config = {
       "learning_rate": learning_rate,
       "weight_decay": weight_decay,
@@ -88,7 +89,7 @@ if __name__=='__main__':
 
     train_dataset, val_dataset, steps_per_epoch, validation_steps = get_dateset(batch_size, data)
 
-    wandb_config(model_name, backbone)
+    wandb_config(model_name, backbone, batch_size, learning_rate)
 
     strategy = tf.distribute.MirroredStrategy()
 
