@@ -7,6 +7,7 @@ import wandb
 from segmentation_models.utils import set_trainable
 from sklearn.model_selection import train_test_split
 import segmentation_models as sm
+from tensorflow.python.keras.callbacks import ModelCheckpoint
 from wandb.integration.keras import WandbCallback
 from segmentation_models.losses import bce_jaccard_loss
 from segmentation_models.metrics import iou_score, f1_score
@@ -178,7 +179,7 @@ if __name__=='__main__':
         optimizer = tfa.optimizers.AdamW(
             learning_rate=learning_rate, weight_decay=weight_decay
         )
-
+        checkpoint = ModelCheckpoint('/geoinfo_vol1/zhao2/proj2_model/proj2_'+model_name+'_pretrained_'+backbone+'dataset_'+data, monitor="val_loss", mode="min", save_best_only=True, verbose=1)
         model.compile(optimizer, loss=bce_jaccard_loss, metrics=[iou_score, f1_score])
 
     options = tf.data.Options()
@@ -197,7 +198,7 @@ if __name__=='__main__':
                 validation_data=val_dataset,
                 validation_steps=validation_steps,
                 epochs=2,
-                callbacks=[WandbCallback()],
+                callbacks=[WandbCallback(), checkpoint],
             )
         for layer in model.layers:
             layer.trainable = True
