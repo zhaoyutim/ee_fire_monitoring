@@ -49,8 +49,11 @@ def normalization(x):
     return 255*(x-np.nanmin(x))/(np.nanmax(x)-np.nanmin(x))
 
 
-def dataset_gen():
-    file_list = glob.glob('palsar_s1/*/*/*.tif')
+def dataset_gen(dataset):
+    if dataset=='palsar':
+        file_list = glob.glob('palsar/*/*/*.tif')
+    else:
+        file_list = glob.glob('palsar_s1/*/*/*.tif')
     file_list.sort()
     dataset_train_list = []
     dataset_val_list = []
@@ -94,18 +97,23 @@ def dataset_gen():
 
     dataset_train = np.stack(dataset_train_list, axis=0)
     dataset_val = np.stack(dataset_val_list, axis=0)
-
-    np.save('dataset/proj2_train_7chan_s1.npy', dataset_train)
-    np.save('dataset/proj2_val_7chan_s1.npy', dataset_val)
-
+    if dataset=='palsar':
+        np.save('dataset/proj2_train_7chan.npy', dataset_train)
+        np.save('dataset/proj2_val_7chan.npy', dataset_val)
+    else:
+        np.save('dataset_s1/proj2_train_7chan_s1.npy', dataset_train)
+        np.save('dataset_s1/proj2_val_7chan_s1.npy', dataset_val)
     return dataset_train, dataset_val
 
 
-def dataset_eva_gen():
-    land_covers = ['broadleaf']
+def dataset_eva_gen(dataset):
+    land_covers = ['needle', 'broadleaf', 'shrublands', 'savannas', 'grasslands', 'mixed']
     for land_cover in land_covers:
-        file_list = glob.glob('palsar_eva/'+land_cover+'/*/*.tif')
-        overlap = 128
+        if dataset=='palsar':
+            file_list = glob.glob('palsar_eva/'+land_cover+'/*/*.tif')
+        else:
+            file_list = glob.glob('palsar_s1_eva/'+land_cover+'/*/*.tif')
+        overlap = 64
         for idx in range(len(file_list)):
             file_name = file_list[idx]
             dataset_eva_list = []
@@ -151,14 +159,18 @@ def dataset_eva_gen():
                             dataset_eva_list.append(data_output[i * overlap: (i * overlap) + 256, j * overlap: (j * overlap) + 256, :])
                 dataset_eva = np.stack(dataset_eva_list, axis=0)
                 print(dataset_eva.shape)
-                np.save('dataset/' + landcover + fire_id + 'x' + str(data_index_x) + 'y' + str(data_index_y) + '.npy',
-                        dataset_eva)
+                if dataset=='palsar':
+                    np.save('dataset/' + landcover + fire_id + 'x' + str(data_index_x) + 'y' + str(data_index_y) + '.npy',
+                            dataset_eva)
+                else:
+                    np.save('dataset_s1/' + landcover + fire_id + 'x' + str(data_index_x) + 'y' + str(data_index_y) + '.npy',
+                            dataset_eva)
 
 def dataset_eva_gen_swe():
     land_covers = ['savannas']
     for land_cover in land_covers:
-        file_list = glob.glob('palsar_eva/'+land_cover+'/*/*.tif')
-        overlap = 128
+        file_list = glob.glob('palsar_evaluate/'+land_cover+'/*/*.tif')
+        overlap = 64
         for idx in range(len(file_list)):
             file_name = file_list[idx]
             dataset_eva_list = []
@@ -198,6 +210,6 @@ def dataset_eva_gen_swe():
                         dataset_eva)
 
 if __name__ == '__main__':
-    dataset_gen()
-    # dataset_eva_gen()
+    # dataset_gen('palsar')
+    dataset_eva_gen('s1')
     # dataset_eva_gen_swe()
