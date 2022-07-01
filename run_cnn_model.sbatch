@@ -2,8 +2,8 @@
 #SBATCH --output /geoinfo_vol1/zhao2/run_logs/%J_slurm.out
 #SBATCH --error  /geoinfo_vol1/zhao2/run_logs/%J_slurm.err
 #SBATCH --mem  72GB
-#SBATCH --gres gpu:4
-#SBATCH --cpus-per-task 16
+#SBATCH --gres gpu:2
+#SBATCH --cpus-per-task 8
 
 echo "Starting job ${SLURM_JOB_ID} on ${SLURMD_NODENAME}"
 nvidia-smi
