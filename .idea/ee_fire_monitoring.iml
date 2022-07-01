@@ -3,6 +3,15 @@
   <component name="NewModuleRootManager">
     <content url="file://$MODULE_DIR$">
       <excludeFolder url="file://$MODULE_DIR$/venv" />
+      <excludeFolder url="file://$MODULE_DIR$/dataset" />
+      <excludeFolder url="file://$MODULE_DIR$/dataset_s1" />
+      <excludeFolder url="file://$MODULE_DIR$/palsar_eva" />
+      <excludeFolder url="file://$MODULE_DIR$/palsar_s1" />
+      <excludeFolder url="file://$MODULE_DIR$/figure" />
+      <excludeFolder url="file://$MODULE_DIR$/figure_eva" />
+      <excludeFolder url="file://$MODULE_DIR$/palsar" />
+      <excludeFolder url="file://$MODULE_DIR$/palsar_evaluate" />
+      <excludeFolder url="file://$MODULE_DIR$/palsar_s1_eva" />
     </content>
     <orderEntry type="jdk" jdkName="Python 3.7 (venv)" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />

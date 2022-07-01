@@ -82,7 +82,7 @@ if __name__=='__main__':
     backbone = args.bb
     sm.set_framework('tf.keras')
     batch_size=args.b
-    MAX_EPOCHS=100
+    MAX_EPOCHS=300
     fine_tune=True
     learning_rate = args.lr
     data = args.data
@@ -118,9 +118,9 @@ if __name__=='__main__':
             x = data_augmentation(x)
             conv1 = tf.keras.layers.Conv2D(3, 3, activation = 'linear', padding = 'same', kernel_initializer = 'he_normal')(x)
             if backbone == 'None':
-                basemodel = Unet(encoder_weights='imagenet', activation='sigmoid', encoder_freeze=True)
+                basemodel = Unet(encoder_weights='imagenet', activation=None, encoder_freeze=True)
             else:
-                basemodel = Unet(backbone, encoder_weights='imagenet', activation='sigmoid', encoder_freeze=True)
+                basemodel = Unet(backbone, encoder_weights='imagenet', activation=None, encoder_freeze=True)
             basemodel.summary()
             output = basemodel(conv1)
             model = tf.keras.Model(input, output, name=model_name)
@@ -175,9 +175,7 @@ if __name__=='__main__':
             output = basemodel(conv1)
             model = tf.keras.Model(input, output, name=model_name)
         model.summary()
-        optimizer = tfa.optimizers.AdamW(
-            learning_rate=learning_rate, weight_decay=weight_decay
-        )
+        optimizer = tfa.optimizers.Adam(learning_rate=learning_rate)
         checkpoint = ModelCheckpoint('/geoinfo_vol1/zhao2/proj2_model/proj2_'+model_name+'_pretrained_'+backbone+'dataset_'+data, monitor="val_loss", mode="min", save_best_only=True, verbose=1)
         model.compile(optimizer, loss=bce_dice_loss, metrics=[iou_score, f1_score])
 
@@ -201,7 +199,7 @@ if __name__=='__main__':
             )
         for layer in model.layers:
             layer.trainable = True
-        model.compile(optimizer, loss=bce_jaccard_loss, metrics=[iou_score, f1_score])
+        model.compile(optimizer, loss=bce_dice_loss, metrics=[iou_score, f1_score])
         print('training in progress')
         history = model.fit(
             train_dataset,
