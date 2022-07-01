@@ -9,7 +9,7 @@ from sklearn.model_selection import train_test_split
 import segmentation_models as sm
 from tensorflow.python.keras.callbacks import ModelCheckpoint
 from wandb.integration.keras import WandbCallback
-from segmentation_models.losses import bce_jaccard_loss, DiceLoss
+from segmentation_models.losses import bce_jaccard_loss, bce_dice_loss
 from segmentation_models.metrics import iou_score, f1_score
 from segmentation_models import Unet, Linknet, PSPNet, FPN
 from keras_unet_collection import models
@@ -179,7 +179,7 @@ if __name__=='__main__':
             learning_rate=learning_rate, weight_decay=weight_decay
         )
         checkpoint = ModelCheckpoint('/geoinfo_vol1/zhao2/proj2_model/proj2_'+model_name+'_pretrained_'+backbone+'dataset_'+data, monitor="val_loss", mode="min", save_best_only=True, verbose=1)
-        model.compile(optimizer, loss=DiceLoss, metrics=[iou_score, f1_score])
+        model.compile(optimizer, loss=bce_dice_loss, metrics=[iou_score, f1_score])
 
     options = tf.data.Options()
     options.experimental_distribute.auto_shard_policy = tf.data.experimental.AutoShardPolicy.OFF
