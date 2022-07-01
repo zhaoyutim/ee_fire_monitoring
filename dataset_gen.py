@@ -16,7 +16,7 @@ with open("dataset_config/land_cover_id_eva.yaml", "r", encoding="utf8") as f:
 def read_tiff(file_path):
     with rasterio.open(file_path, 'r') as reader:
         profile = reader.profile
-        tif_as_array = reader.read()
+        tif_as_array = reader.read().astype(np.float32)
     return tif_as_array, profile
 
 
@@ -110,16 +110,16 @@ def dataset_eva_gen(dataset):
     land_covers = ['needle', 'broadleaf', 'shrublands', 'savannas', 'grasslands', 'mixed']
     for land_cover in land_covers:
         if dataset=='palsar':
-            file_list = glob.glob('palsar_eva/'+land_cover+'/*/*.tif')
+            file_list = glob.glob('palsar_eva\\'+land_cover+'\\*\\*.tif')
         else:
-            file_list = glob.glob('palsar_s1_eva/'+land_cover+'/*/*.tif')
-        overlap = 64
+            file_list = glob.glob('s1_eva\\'+land_cover+'\\*\\*.tif')
+        overlap = 128
         for idx in range(len(file_list)):
             file_name = file_list[idx]
             dataset_eva_list = []
-            if len(file_name.split('/')[2])==13:
-                fire_id = file_name.split('/')[2][:-5]
-                landcover = file_name.split('/')[1]
+            if len(file_name.split('\\')[2])==13:
+                fire_id = file_name.split('\\')[2][:-5]
+                landcover = file_name.split('\\')[1]
                 print(fire_id)
                 th = config_eva.get(landcover).get(int(fire_id)).get('th')
                 bbox = config_eva.get(landcover).get(int(fire_id)).get('bbox')
@@ -142,6 +142,7 @@ def dataset_eva_gen(dataset):
                     data_output[:, :, 7] = np.logical_and(tif_array[:, :, 5] > th, tif_array[:, :, 4] > 0)
                 else:
                     data_output[:, :, 7] = tif_array[:, :, 5] > th
+                del tif_array
                 plt.title('c')
                 plt.imshow(data_output[:, :, 7], cmap='Reds')
                 plt.savefig('label', bbox_inches='tight')
@@ -156,21 +157,23 @@ def dataset_eva_gen(dataset):
                 for i in range(data_index_x):
                     for j in range(data_index_y):
                         if (i * overlap) + 256 < size_x and (j * overlap) + 256 < size_y:
-                            dataset_eva_list.append(data_output[i * overlap: (i * overlap) + 256, j * overlap: (j * overlap) + 256, :])
+                            dataset_eva_list.append(data_output[i * overlap: (i * overlap) + 256, j * overlap: (j * overlap) + 256, :].astype(np.float32))
                 dataset_eva = np.stack(dataset_eva_list, axis=0)
                 print(dataset_eva.shape)
                 if dataset=='palsar':
                     np.save('dataset/' + landcover + fire_id + 'x' + str(data_index_x) + 'y' + str(data_index_y) + '.npy',
                             dataset_eva)
+                    del dataset_eva
                 else:
                     np.save('dataset_s1/' + landcover + fire_id + 'x' + str(data_index_x) + 'y' + str(data_index_y) + '.npy',
                             dataset_eva)
+                    del dataset_eva
 
 def dataset_eva_gen_swe():
     land_covers = ['savannas']
     for land_cover in land_covers:
         file_list = glob.glob('palsar_evaluate/'+land_cover+'/*/*.tif')
-        overlap = 64
+        overlap = 64+128
         for idx in range(len(file_list)):
             file_name = file_list[idx]
             dataset_eva_list = []
@@ -211,5 +214,5 @@ def dataset_eva_gen_swe():
 
 if __name__ == '__main__':
     # dataset_gen('palsar')
-    dataset_eva_gen('s1')
+    dataset_eva_gen('palsar')
     # dataset_eva_gen_swe()

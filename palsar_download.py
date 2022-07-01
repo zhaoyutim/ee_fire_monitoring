@@ -10,4 +10,4 @@ ee.Initialize()
 if __name__=='__main__':
     client = palsar()
     # client.download_to_gcloud('eva')
-    client.download_to_local('eva', '2022-06-22')
+    client.download_to_local('eva', '2022-06-20')

@@ -127,7 +127,7 @@ class palsar:
                         if dataset=='train':
                             dir = 'palsar_s1' + '/' + land_cover + '/' + id + '_' + str(post_year) + '/' + str(post_year)
                         else:
-                            dir = 'palsar_s1_eva' + '/' + land_cover + '/' + id + '_' + str(post_year) + '/' + str(post_year)
+                            dir = 's1_eva' + '/' + land_cover + '/' + id + '_' + str(post_year) + '/' + str(post_year)
                         image_task = ee.batch.Export.image.toCloudStorage(
                             image=composite_s1.toFloat(),
                             description='Image Export:' + land_cover + '_' + id + '_' + str(post_year)+'S1',
@@ -167,7 +167,7 @@ class palsar:
             prefixs = ['palsar', 'palsar_s1']
             fire_info=config
         else:
-            prefixs = ['palsar_eva', 'palsar_s1_eva']
+            prefixs = ['palsar_eva', 's1_eva']
             fire_info=config_eva
         for prefix in prefixs:
             blobs = bucket.list_blobs(prefix=prefix)

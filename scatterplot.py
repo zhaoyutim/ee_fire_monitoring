@@ -50,7 +50,7 @@ def overview_backscatter(dataset='train'):
     else:
         land_covers = ['broadleaf', 'needle', 'grasslands', 'shrublands', 'savannas', 'mixed']
         dir_palsar='palsar_eva'
-        dir_s1='palsar_s1_eva'
+        dir_s1= 's1_eva'
     polarization = ['PALSAR HH', 'PALSAR HV', 'PALSAR HV-HH']
     polarization_s1 = ['S1 VV', 'S1 VH', 'S1 VH-VV']
     title=['(a)', '(b)', '(c)', '(d)', '(e)', '(f)']

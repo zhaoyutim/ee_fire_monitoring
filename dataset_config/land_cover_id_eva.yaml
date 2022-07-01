@@ -9,11 +9,11 @@ needle:
     bbox: 1
     pre: 2017
     post: 2018
-  20146986:
-    th: 0.4
-    bbox: 1
-    pre: 2017
-    post: 2018
+#  20146986:
+#    th: 0.4
+#    bbox: 1
+#    pre: 2017
+#    post: 2018
 #  20147012:
 #    th: 0.1
 #    bbox: 1
