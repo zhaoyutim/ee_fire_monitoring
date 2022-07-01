@@ -182,7 +182,7 @@ if __name__=='__main__':
         binary_crossentropy = BinaryCELoss()
         dice_loss = DiceLoss(per_image=True)
         bce_dice_loss = binary_crossentropy + dice_loss
-        model.compile(optimizer, loss=bce_dice_loss, metrics=[iou_score, f1_score])
+        model.compile(optimizer, loss=dice_loss, metrics=[iou_score, f1_score])
 
     options = tf.data.Options()
     options.experimental_distribute.auto_shard_policy = tf.data.experimental.AutoShardPolicy.OFF
