@@ -175,7 +175,7 @@ if __name__=='__main__':
             output = basemodel(conv1)
             model = tf.keras.Model(input, output, name=model_name)
         model.summary()
-        optimizer = tfa.optimizers.Adam(learning_rate=learning_rate)
+        optimizer = tf.optimizers.Adam(learning_rate=learning_rate)
         checkpoint = ModelCheckpoint('/geoinfo_vol1/zhao2/proj2_model/proj2_'+model_name+'_pretrained_'+backbone+'dataset_'+data, monitor="val_loss", mode="min", save_best_only=True, verbose=1)
         model.compile(optimizer, loss=bce_dice_loss, metrics=[iou_score, f1_score])
 
