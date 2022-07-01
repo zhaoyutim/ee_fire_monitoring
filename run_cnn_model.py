@@ -10,7 +10,6 @@ import segmentation_models as sm
 from tensorflow.python.keras.callbacks import ModelCheckpoint
 from wandb.integration.keras import WandbCallback
 from segmentation_models.losses import bce_jaccard_loss, bce_dice_loss
-from segmentation_models.metrics import iou_score, f1_score
 from segmentation_models import Unet, Linknet, PSPNet, FPN
 from keras_unet_collection import models
 from model.swintransformer import SwinTransformer
@@ -118,9 +117,9 @@ if __name__=='__main__':
             x = data_augmentation(x)
             conv1 = tf.keras.layers.Conv2D(3, 3, activation = 'linear', padding = 'same', kernel_initializer = 'he_normal')(x)
             if backbone == 'None':
-                basemodel = Unet(encoder_weights='imagenet', activation=None, encoder_freeze=True)
+                basemodel = Unet(encoder_weights='imagenet', activation='sigmoid', encoder_freeze=True)
             else:
-                basemodel = Unet(backbone, encoder_weights='imagenet', activation=None, encoder_freeze=True)
+                basemodel = Unet(backbone, encoder_weights='imagenet', activation='sigmoid', encoder_freeze=True)
             basemodel.summary()
             output = basemodel(conv1)
             model = tf.keras.Model(input, output, name=model_name)
@@ -177,6 +176,8 @@ if __name__=='__main__':
         model.summary()
         optimizer = tf.optimizers.Adam(learning_rate=learning_rate)
         checkpoint = ModelCheckpoint('/geoinfo_vol1/zhao2/proj2_model/proj2_'+model_name+'_pretrained_'+backbone+'dataset_'+data, monitor="val_loss", mode="min", save_best_only=True, verbose=1)
+        iou_score=IOUScore(threshold=0.5)
+        f1_score=FScore(beta=1, threshold=0.5)
         model.compile(optimizer, loss=bce_dice_loss, metrics=[iou_score, f1_score])
 
     options = tf.data.Options()
