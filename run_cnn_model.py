@@ -10,7 +10,7 @@ from sklearn.model_selection import train_test_split
 import segmentation_models as sm
 from tensorflow.python.keras.callbacks import ModelCheckpoint
 from wandb.integration.keras import WandbCallback
-from segmentation_models.losses import bce_jaccard_loss, bce_dice_loss
+from segmentation_models.losses import DiceLoss, BinaryCELoss
 from segmentation_models import Unet, Linknet, PSPNet, FPN
 from keras_unet_collection import models
 from model.swintransformer import SwinTransformer
@@ -177,8 +177,11 @@ if __name__=='__main__':
         model.summary()
         optimizer = tf.optimizers.Adam(learning_rate=learning_rate)
         checkpoint = ModelCheckpoint('/geoinfo_vol1/zhao2/proj2_model/proj2_'+model_name+'_pretrained_'+backbone+'dataset_'+data, monitor="val_loss", mode="min", save_best_only=True, verbose=1)
-        iou_score=IOUScore(threshold=0.5)
-        f1_score=FScore(beta=1, threshold=0.5)
+        iou_score=IOUScore(threshold=0.5, per_image=True)
+        f1_score=FScore(beta=1, threshold=0.5, per_image=True)
+        binary_crossentropy = BinaryCELoss()
+        dice_loss = DiceLoss(per_image=True)
+        bce_dice_loss = binary_crossentropy + dice_loss
         model.compile(optimizer, loss=bce_dice_loss, metrics=[iou_score, f1_score])
 
     options = tf.data.Options()
