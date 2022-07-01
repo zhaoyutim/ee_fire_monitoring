@@ -83,7 +83,7 @@ if __name__=='__main__':
     sm.set_framework('tf.keras')
     batch_size=args.b
     MAX_EPOCHS=300
-    fine_tune=True
+    fine_tune=False
     learning_rate = args.lr
     data = args.data
     weight_decay = learning_rate/10
@@ -189,19 +189,21 @@ if __name__=='__main__':
     if load_weights== 'yes':
         model.load_weights('/geoinfo_vol1/zhao2/proj2_model/proj2_'+model_name+'_pretrained_'+backbone)
     else:
-        if fine_tune==True:
-            model.fit(
-                train_dataset,
-                batch_size=batch_size,
-                steps_per_epoch=steps_per_epoch,
-                validation_data=val_dataset,
-                validation_steps=validation_steps,
-                epochs=2,
-                callbacks=[WandbCallback(), checkpoint],
-            )
-        for layer in model.layers:
-            layer.trainable = True
-        model.compile(optimizer, loss=bce_dice_loss, metrics=[iou_score, f1_score])
+        # if fine_tune==True:
+        #     for layer in model.layers:
+        #         layer.trainable = False
+        #     model.fit(
+        #         train_dataset,
+        #         batch_size=batch_size,
+        #         steps_per_epoch=steps_per_epoch,
+        #         validation_data=val_dataset,
+        #         validation_steps=validation_steps,
+        #         epochs=2,
+        #         callbacks=[WandbCallback()],
+        #     )
+        # for layer in model.layers:
+        #     layer.trainable = True
+        # model.compile(optimizer, loss=bce_dice_loss, metrics=[iou_score, f1_score])
         print('training in progress')
         history = model.fit(
             train_dataset,
@@ -210,6 +212,6 @@ if __name__=='__main__':
             validation_data=val_dataset,
             validation_steps=validation_steps,
             epochs=MAX_EPOCHS,
-            callbacks=[WandbCallback()],
+            callbacks=[WandbCallback(), checkpoint],
         )
         model.save('/geoinfo_vol1/zhao2/proj2_model/proj2_'+model_name+'_pretrained_'+backbone+'dataset_'+data)
