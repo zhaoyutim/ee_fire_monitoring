@@ -49,7 +49,7 @@ def normalization(x):
     return 255*(x-np.nanmin(x))/(np.nanmax(x)-np.nanmin(x))
 
 
-def dataset_gen(dataset):
+def dataset_gen(dataset, nchannel):
     if dataset=='palsar':
         file_list = glob.glob('palsar/*/*/*.tif')
     else:
@@ -69,23 +69,35 @@ def dataset_gen(dataset):
         _, size_x, size_y = tif_array.shape
         tif_array = tif_array.transpose((1, 2, 0))
         tif_array = np.nan_to_num(tif_array)
-        data_output = np.zeros((tif_array.shape[0], tif_array.shape[1], 8))
-        for i in range(4):
-            data_output[:, :, i] = remove_outliers(tif_array[:, :, i], 1)
-            # data_output[:, :, i] = np.nan_to_num(standardization(data_output[:, :, i]))
-        for i in range(3):
-            data_output[:, :, i + 4] = remove_outliers(tif_array[:, :, i + 6], 1)
-        # img = (tif_array[:, :, :3] - tif_array[:, :, :3].min()) / (
-        #             tif_array[:, :, :3].max() - tif_array[:, :, :3].min())
-        # plt.imshow(img)
-        # plt.show()
-        if bbox == 1:
-            data_output[:, :, 7] = np.logical_and(tif_array[:, :, 5] > th, tif_array[:, :, 4] > 0)
-        else:
-            data_output[:, :, 7] = tif_array[:, :, 5] > th
-        # img = data_output[:, :, 4]
-        # plt.imshow(img)
-        # plt.show()
+        data_output = np.zeros((tif_array.shape[0], tif_array.shape[1], nchannel+1))
+        if nchannel == 7:
+            for i in range(4):
+                data_output[:, :, i] = remove_outliers(tif_array[:, :, i], 1)
+                data_output[:, :, i] = np.nan_to_num(standardization(data_output[:, :, i]))
+            for i in range(3):
+                data_output[:, :, i + 4] = remove_outliers(tif_array[:, :, i + 6], 1)
+                data_output[:, :, i + 4] = np.nan_to_num(standardization(data_output[:, :, i + 4]))
+            if bbox == 1:
+                data_output[:, :, 7] = np.logical_and(tif_array[:, :, 5] > th, tif_array[:, :, 4] > 0)
+            else:
+                data_output[:, :, 7] = tif_array[:, :, 5] > th
+        elif nchannel == 4:
+            for i in range(4):
+                data_output[:, :, i] = remove_outliers(tif_array[:, :, i], 1)
+                data_output[:, :, i] = np.nan_to_num(standardization(data_output[:, :, i]))
+            if bbox == 1:
+                data_output[:, :, 4] = np.logical_and(tif_array[:, :, 5] > th, tif_array[:, :, 4] > 0)
+            else:
+                data_output[:, :, 4] = tif_array[:, :, 5] > th
+        elif nchannel == 3:
+            for i in range(3):
+                data_output[:, :, i] = remove_outliers(tif_array[:, :, i + 6], 1)
+                data_output[:, :, i] = np.nan_to_num(standardization(data_output[:, :, i]))
+            if bbox == 1:
+                data_output[:, :, 3] = np.logical_and(tif_array[:, :, 5] > th, tif_array[:, :, 4] > 0)
+            else:
+                data_output[:, :, 3] = tif_array[:, :, 5] > th
+        del tif_array
         data_index_y = size_y // 256
         data_index_x = size_x // 256
         for i in range(data_index_x):
@@ -94,19 +106,19 @@ def dataset_gen(dataset):
                     dataset_train_list.append(data_output[i * 256:(i + 1) * 256, j * 256:(j + 1) * 256, :])
                 else:
                     dataset_val_list.append(data_output[i * 256:(i + 1) * 256, j * 256:(j + 1) * 256, :])
-
+        del data_output
     dataset_train = np.stack(dataset_train_list, axis=0)
     dataset_val = np.stack(dataset_val_list, axis=0)
     if dataset=='palsar':
-        np.save('dataset/proj2_train_7chan.npy', dataset_train)
-        np.save('dataset/proj2_val_7chan.npy', dataset_val)
+        np.save('dataset/proj2_train_'+str(nchannel)+'chan.npy', dataset_train)
+        np.save('dataset/proj2_val_'+str(nchannel)+'chan.npy', dataset_val)
     else:
-        np.save('dataset_s1/proj2_train_7chan_s1.npy', dataset_train)
-        np.save('dataset_s1/proj2_val_7chan_s1.npy', dataset_val)
+        np.save('dataset_s1/proj2_train_'+str(nchannel)+'chan_s1.npy', dataset_train)
+        np.save('dataset_s1/proj2_val_'+str(nchannel)+'chan_s1.npy', dataset_val)
     return dataset_train, dataset_val
 
 
-def dataset_eva_gen(dataset):
+def dataset_eva_gen(dataset, nchannel):
     land_covers = ['needle', 'broadleaf', 'shrublands', 'savannas', 'grasslands', 'mixed']
     for land_cover in land_covers:
         if dataset=='palsar':
@@ -127,26 +139,39 @@ def dataset_eva_gen(dataset):
                 _, size_x, size_y = tif_array.shape
                 tif_array = tif_array.transpose((1, 2, 0))
                 tif_array = np.nan_to_num(tif_array)
-                data_output = np.zeros((tif_array.shape[0], tif_array.shape[1], 8))
-                img = np.zeros((tif_array.shape[0], tif_array.shape[1], 3))
-                for i in range(4):
-                    data_output[:, :, i] = remove_outliers(tif_array[:, :, i], 1)
-                for i in range(3):
-                    data_output[:, :, i + 4] = remove_outliers(tif_array[:, :, i + 6], 1)
-                    # data_output[:, :, i] = np.nan_to_num(standardization(data_output[:, :, i]))
-                # img = (tif_array[:, :, :3] - tif_array[:, :, :3].min()) / (
-                #             tif_array[:, :, :3].max() - tif_array[:, :, :3].min())
-                # plt.imshow(img)
-                # plt.show()
-                if bbox == 1:
-                    data_output[:, :, 7] = np.logical_and(tif_array[:, :, 5] > th, tif_array[:, :, 4] > 0)
-                else:
-                    data_output[:, :, 7] = tif_array[:, :, 5] > th
+                data_output = np.zeros((tif_array.shape[0], tif_array.shape[1], nchannel+1))
+                if nchannel==7:
+                    for i in range(4):
+                        data_output[:, :, i] = remove_outliers(tif_array[:, :, i], 1)
+                        data_output[:, :, i] = np.nan_to_num(standardization(data_output[:, :, i]))
+                    for i in range(3):
+                        data_output[:, :, i + 4] = remove_outliers(tif_array[:, :, i + 6], 1)
+                        data_output[:, :, i + 4] = np.nan_to_num(standardization(data_output[:, :, i + 4]))
+                    if bbox == 1:
+                        data_output[:, :, 7] = np.logical_and(tif_array[:, :, 5] > th, tif_array[:, :, 4] > 0)
+                    else:
+                        data_output[:, :, 7] = tif_array[:, :, 5] > th
+                elif nchannel==4:
+                    for i in range(4):
+                        data_output[:, :, i] = remove_outliers(tif_array[:, :, i], 1)
+                        data_output[:, :, i] = np.nan_to_num(standardization(data_output[:, :, i]))
+                    if bbox == 1:
+                        data_output[:, :, 4] = np.logical_and(tif_array[:, :, 5] > th, tif_array[:, :, 4] > 0)
+                    else:
+                        data_output[:, :, 4] = tif_array[:, :, 5] > th
+                elif nchannel==3:
+                    for i in range(3):
+                        data_output[:, :, i] = remove_outliers(tif_array[:, :, i + 6], 1)
+                        data_output[:, :, i] = np.nan_to_num(standardization(data_output[:, :, i]))
+                    if bbox == 1:
+                        data_output[:, :, 3] = np.logical_and(tif_array[:, :, 5] > th, tif_array[:, :, 4] > 0)
+                    else:
+                        data_output[:, :, 3] = tif_array[:, :, 5] > th
                 del tif_array
-                plt.title('c')
-                plt.imshow(data_output[:, :, 7], cmap='Reds')
-                plt.savefig('label', bbox_inches='tight')
-                plt.show()
+                # plt.title('c')
+                # plt.imshow(data_output[:, :, 7], cmap='Reds')
+                # plt.savefig('label', bbox_inches='tight')
+                # plt.show()
 
                 data_index_y = size_y // overlap
                 data_index_x = size_x // overlap
@@ -161,11 +186,11 @@ def dataset_eva_gen(dataset):
                 dataset_eva = np.stack(dataset_eva_list, axis=0)
                 print(dataset_eva.shape)
                 if dataset=='palsar':
-                    np.save('dataset/' + landcover + fire_id + 'x' + str(data_index_x) + 'y' + str(data_index_y) + '.npy',
+                    np.save('dataset_'+str(nchannel)+'/' + landcover + fire_id + 'x' + str(data_index_x) + 'y' + str(data_index_y) + '.npy',
                             dataset_eva)
                     del dataset_eva
                 else:
-                    np.save('dataset_s1/' + landcover + fire_id + 'x' + str(data_index_x) + 'y' + str(data_index_y) + '.npy',
+                    np.save('dataset_s1_'+str(nchannel)+'/' + landcover + fire_id + 'x' + str(data_index_x) + 'y' + str(data_index_y) + '.npy',
                             dataset_eva)
                     del dataset_eva
 
@@ -213,6 +238,6 @@ def dataset_eva_gen_swe():
                         dataset_eva)
 
 if __name__ == '__main__':
-    # dataset_gen('palsar')
-    dataset_eva_gen('palsar')
+    dataset_gen('s1',nchannel=7)
+    # dataset_eva_gen('palsar',nchannel=4)
     # dataset_eva_gen_swe()
