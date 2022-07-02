@@ -81,13 +81,13 @@ if __name__=='__main__':
     model_name = args.m
     load_weights = args.p
     backbone = args.bb
-    nchannels = args.nc
     sm.set_framework('tf.keras')
     batch_size=args.b
     MAX_EPOCHS=300
     fine_tune=False
     learning_rate = args.lr
     data = args.data
+    nchannels = args.nc
     weight_decay = learning_rate/10
 
     train_dataset, val_dataset, steps_per_epoch, validation_steps = get_dateset(batch_size, data, nchannels)
