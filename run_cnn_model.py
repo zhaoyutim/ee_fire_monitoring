@@ -179,8 +179,8 @@ if __name__=='__main__':
         model.summary()
         optimizer = tf.optimizers.Adam(learning_rate=learning_rate)
         checkpoint = ModelCheckpoint('/geoinfo_vol1/zhao2/proj2_model/proj2_'+model_name+'_pretrained_'+backbone+'dataset_'+data, monitor="val_loss", mode="min", save_best_only=True, verbose=1)
-        iou_score=IOUScore(threshold=0.5, per_image=True)
-        f1_score=FScore(beta=1, threshold=0.5, per_image=True)
+        iou_score=IOUScore(threshold=0.5)
+        f1_score=FScore(beta=1, threshold=0.5)
         binary_crossentropy = BinaryCELoss()
         dice_loss = DiceLoss()
         bce_dice_loss = binary_crossentropy + dice_loss
