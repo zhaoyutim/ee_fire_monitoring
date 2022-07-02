@@ -24,8 +24,8 @@ def get_dateset(batch_size, data, nchannels):
         train_array = np.load('/geoinfo_vol1/zhao2/proj2_dataset/proj2_train_'+str(nchannels)+'chan_s1.npy')
         val_array = np.load('/geoinfo_vol1/zhao2/proj2_dataset/proj2_val_'+str(nchannels)+'chan_s1.npy')
     print(train_array.shape)
-    y_dataset = train_array[:,:,:,7]>0
-    y_dataset_val = val_array[:,:,:,7]>0
+    y_dataset = train_array[:,:,:,nchannels]>0
+    y_dataset_val = val_array[:,:,:,nchannels]>0
     # x_train, x_val, y_train, y_val = train_test_split(train_dataset[:,:,:,:4], y_dataset, test_size=0.2, random_state=0)
     def make_generator(inputs, labels):
         def _generator():
