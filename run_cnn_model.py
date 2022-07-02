@@ -35,9 +35,9 @@ def get_dateset(batch_size, data, nchannels):
         return _generator
 
 
-    train_dataset = tf.data.Dataset.from_generator(make_generator(train_array[:,:,:,:7], y_dataset),
+    train_dataset = tf.data.Dataset.from_generator(make_generator(train_array[:,:,:,:nchannels], y_dataset),
                                                    (tf.float32, tf.float32))
-    val_dataset = tf.data.Dataset.from_generator(make_generator(val_array[:,:,:,:7], y_dataset_val),
+    val_dataset = tf.data.Dataset.from_generator(make_generator(val_array[:,:,:,:nchannels], y_dataset_val),
                                                  (tf.float32, tf.float32))
 
     train_dataset = train_dataset.shuffle(batch_size).repeat(MAX_EPOCHS).batch(batch_size)
