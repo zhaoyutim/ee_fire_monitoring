@@ -76,7 +76,7 @@ if __name__=='__main__':
     parser.add_argument('-bb', type=str, help='backbone')
     parser.add_argument('-lr', type=float, help='learning rate')
     parser.add_argument('-data', type=str, help='dataset used')
-    parser.add_argument('-nc', type=str, help='num of channels')
+    parser.add_argument('-nc', type=int, help='num of channels')
     args = parser.parse_args()
     model_name = args.m
     load_weights = args.p
