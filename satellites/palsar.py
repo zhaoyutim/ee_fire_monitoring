@@ -167,7 +167,7 @@ class palsar:
             prefixs = ['palsar', 'palsar_s1']
             fire_info=config
         else:
-            prefixs = ['palsar_eva', 's1_eva']
+            prefixs = ['palsar_eva', 'palsar_s1_eva']
             fire_info=config_eva
         for prefix in prefixs:
             blobs = bucket.list_blobs(prefix=prefix)

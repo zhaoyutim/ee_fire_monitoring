@@ -40,8 +40,9 @@ def remove_outliers(x, outlierConstant):
 
 
 def standardization(x):
-    scaler = preprocessing.StandardScaler().fit(x)
-    x = scaler.transform(x)
+    # scaler = preprocessing.StandardScaler().fit(x)
+    # x = scaler.transform(x)
+    x = (x-x.mean())/x.std()
     return x
 
 
@@ -118,14 +119,14 @@ def dataset_gen(dataset, nchannel):
     return dataset_train, dataset_val
 
 
-def dataset_eva_gen(dataset, nchannel):
+def dataset_eva_gen(dataset, nchannel, overlap):
     land_covers = ['needle', 'broadleaf', 'shrublands', 'savannas', 'grasslands', 'mixed']
     for land_cover in land_covers:
         if dataset=='palsar':
             file_list = glob.glob('palsar_eva\\'+land_cover+'\\*\\*.tif')
         else:
-            file_list = glob.glob('s1_eva\\'+land_cover+'\\*\\*.tif')
-        overlap = 128
+            file_list = glob.glob('palsar_s1_eva\\'+land_cover+'\\*\\*.tif')
+
         for idx in range(len(file_list)):
             file_name = file_list[idx]
             dataset_eva_list = []
@@ -185,12 +186,16 @@ def dataset_eva_gen(dataset, nchannel):
                             dataset_eva_list.append(data_output[i * overlap: (i * overlap) + 256, j * overlap: (j * overlap) + 256, :].astype(np.float32))
                 dataset_eva = np.stack(dataset_eva_list, axis=0)
                 print(dataset_eva.shape)
+                if not os.path.exists('dataset\\'+str(nchannel)+'\\'):
+                    os.mkdir('dataset\\'+str(nchannel)+'\\')
+                if not os.path.exists('dataset_s1\\'+str(nchannel)+'\\'):
+                    os.mkdir('dataset_s1\\'+str(nchannel)+'\\')
                 if dataset=='palsar':
-                    np.save('dataset_'+str(nchannel)+'/' + landcover + fire_id + 'x' + str(data_index_x) + 'y' + str(data_index_y) + '.npy',
+                    np.save('dataset/'+str(nchannel)+'/' + landcover + fire_id + 'x' + str(data_index_x) + 'y' + str(data_index_y) + 'nchannels_' + str(nchannel) + '.npy',
                             dataset_eva)
                     del dataset_eva
                 else:
-                    np.save('dataset_s1_'+str(nchannel)+'/' + landcover + fire_id + 'x' + str(data_index_x) + 'y' + str(data_index_y) + '.npy',
+                    np.save('dataset_s1/'+str(nchannel)+'/' + landcover + fire_id + 'x' + str(data_index_x) + 'y' + str(data_index_y) + 'nchannels_' + str(nchannel) + '.npy',
                             dataset_eva)
                     del dataset_eva
 
@@ -238,6 +243,8 @@ def dataset_eva_gen_swe():
                         dataset_eva)
 
 if __name__ == '__main__':
-    dataset_gen('s1',nchannel=7)
-    # dataset_eva_gen('palsar',nchannel=4)
+    # dataset_gen('s1',nchannel=7)
+    for data in ['s1', 'palsar']:
+        for nchannel in [3,4,7]:
+            dataset_eva_gen(data,nchannel=nchannel, overlap = 96+128)
     # dataset_eva_gen_swe()
