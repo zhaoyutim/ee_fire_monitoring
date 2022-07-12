@@ -54,9 +54,9 @@ class SegModel(pl.LightningModule):
         self.best_loss = float('inf')
 
         params = smp.encoders.get_preprocessing_params(encoder_name)
-        self.register_buffer("std", torch.tensor(params["std"]).view(1, 3, 1, 1))
+        self.register_buffer("std", torch.tensor(params["std"]).view(1, in_channels, 1, 1))
         self.learning_rate = learning_rate
-        self.register_buffer("mean", torch.tensor(params["mean"]).view(1, 3, 1, 1))
+        self.register_buffer("mean", torch.tensor(params["mean"]).view(1, in_channels, 1, 1))
         self.loss_fn = smp.losses.DiceLoss(smp.losses.BINARY_MODE, from_logits=True)
 
     def forward(self, image):
