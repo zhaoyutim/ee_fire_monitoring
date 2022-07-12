@@ -175,7 +175,7 @@ if __name__=='__main__':
     if load_weights=='no':
         checkpoint_callback = ModelCheckpoint(dirpath=save_path, save_top_k=1, monitor="val_loss")
         trainer = pl.Trainer(
-            gpus=0,
+            gpus=2,
             max_epochs=MAX_EPOCHS,
             logger=wandb_logger
         )

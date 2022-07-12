@@ -9,4 +9,4 @@ scikit_learn==1.0.2
 segmentation_models==1.0.1
 tensorflow==2.7.0
 tensorflow_addons==0.14.0
-wandb==0.12.9
+wandb==0.12
