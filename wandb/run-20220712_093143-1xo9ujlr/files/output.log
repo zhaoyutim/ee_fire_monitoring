@@ -1,0 +1,8 @@
+
+
+Epoch 1:  50% 1/2 [00:05<00:05,  5.10s/it, loss=0.669, v_num=ujlr, val_loss=0.698, val_per_image_iou=0.154, val_dataset_iou=0.171, val_per_image_f1=0.248, val_dataset_f1=0.292, train_loss=0.670, train_per_image_iou=0.0998, train_dataset_iou=0.138, train_per_image_f1=0.173, train_dataset_f1=0.243]
+
+
+Epoch 2:  50% 1/2 [00:13<00:13, 13.70s/it, loss=0.668, v_num=ujlr, val_loss=0.698, val_per_image_iou=0.154, val_dataset_iou=0.172, val_per_image_f1=0.248, val_dataset_f1=0.294, train_loss=0.668, train_per_image_iou=0.102, train_dataset_iou=0.140, train_per_image_f1=0.176, train_dataset_f1=0.245]
+
+

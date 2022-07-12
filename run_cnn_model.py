@@ -110,7 +110,7 @@ if __name__=='__main__':
             # x = resize_and_rescale(input)
             # x = data_augmentation(x)
             conv1 = tf.keras.layers.Conv2D(3, 3, activation = 'linear', padding = 'same', kernel_initializer = 'he_normal')(input)
-            basemodel = FPN(backbone, encoder_weights='imagenet', activation='sigmoid', classes=1, encoder_freeze=True)
+            basemodel = FPN(backbone, encoder_weights='imagenet', activation='sigmoid', classes=1)
             output = basemodel(conv1)
             model = tf.keras.Model(input, output, name=model_name)
 
@@ -120,9 +120,9 @@ if __name__=='__main__':
             # x = data_augmentation(x)
             conv1 = tf.keras.layers.Conv2D(3, 3, activation = 'linear', padding = 'same', kernel_initializer = 'he_normal')(input)
             if backbone == 'None':
-                basemodel = Unet(encoder_weights='imagenet', activation='sigmoid', encoder_freeze=True)
+                basemodel = Unet(encoder_weights='imagenet', activation='sigmoid')
             else:
-                basemodel = Unet(backbone, encoder_weights='imagenet', activation='sigmoid', encoder_freeze=True)
+                basemodel = Unet(backbone, encoder_weights='imagenet', activation='sigmoid')
             basemodel.summary()
             output = basemodel(conv1)
             model = tf.keras.Model(input, output, name=model_name)
@@ -132,7 +132,7 @@ if __name__=='__main__':
             # x = resize_and_rescale(input)
             # x = data_augmentation(x)
             conv1 = tf.keras.layers.Conv2D(3, 3, activation = 'linear', padding = 'same', kernel_initializer = 'he_normal')(input)
-            basemodel = Linknet(backbone, encoder_weights='imagenet', activation='sigmoid', classes=1, encoder_freeze=True)
+            basemodel = Linknet(backbone, encoder_weights='imagenet', activation='sigmoid', classes=1)
             output = basemodel(conv1)
             model = tf.keras.Model(input, output, name=model_name)
 
@@ -142,7 +142,7 @@ if __name__=='__main__':
             # x = data_augmentation(x)
             input_resize = tf.keras.layers.Resizing(384,384)(input)
             conv1 = tf.keras.layers.Conv2D(3, 3, activation = 'linear', padding = 'same', kernel_initializer = 'he_normal')(input_resize)
-            basemodel = PSPNet(backbone, activation='sigmoid', classes=1, encoder_freeze=True)
+            basemodel = PSPNet(backbone, activation='sigmoid', classes=1)
             output = basemodel(conv1)
             output_resize = tf.keras.layers.Resizing(256,256)(output)
             model = tf.keras.Model(input, output_resize, name=model_name)

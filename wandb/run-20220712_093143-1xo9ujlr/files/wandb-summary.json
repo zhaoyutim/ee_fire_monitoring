@@ -1,0 +1,1 @@
+{"val_loss": 0.6979329586029053, "val_per_image_iou": 0.15355806052684784, "val_dataset_iou": 0.17110933363437653, "val_per_image_f1": 0.24768424034118652, "val_dataset_f1": 0.29221752285957336, "epoch": 0, "trainer/global_step": 0, "_runtime": 8, "_timestamp": 1657611111, "_step": 0}
