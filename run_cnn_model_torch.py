@@ -37,8 +37,8 @@ def get_dateset(batch_size, data, nchannels):
     else:
         train_dataset = PalsarDataset(base_path+'proj2_train_' + str(nchannels) + 'chan_s1.npy', nchannels)
         val_dataset = PalsarDataset(base_path+'proj2_val_' + str(nchannels) + 'chan_s1.npy', nchannels)
-    train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=4)
-    val_dataloader = DataLoader(val_dataset, batch_size=batch_size, num_workers=4)
+    train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+    val_dataloader = DataLoader(val_dataset, batch_size=batch_size)
 
     return train_dataloader, val_dataloader
 
