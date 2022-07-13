@@ -1,0 +1,37 @@
+{
+    "os": "Darwin-21.5.0-x86_64-i386-64bit",
+    "python": "3.7.7",
+    "heartbeatAt": "2022-07-12T09:34:14.805972",
+    "startedAt": "2022-07-12T09:34:12.385717",
+    "docker": null,
+    "cpu_count": 12,
+    "cuda": null,
+    "args": [
+        "-m",
+        "linknet",
+        "-p",
+        "no",
+        "-b",
+        "32",
+        "-bb",
+        "resnet18",
+        "-lr",
+        "0.0001",
+        "-data",
+        "palsar",
+        "-nc",
+        "4"
+    ],
+    "state": "running",
+    "program": "/Users/zhaoyu/PycharmProjects/ee_fire_monitoring/run_cnn_model_torch.py",
+    "codePath": "run_cnn_model_torch.py",
+    "git": {
+        "remote": "https://github.com/zhaoyutim/EEFireMonitoring.git",
+        "commit": "9f8e6c23519952834b9d26a859895955eebd8ecc"
+    },
+    "email": null,
+    "root": "/Users/zhaoyu/PycharmProjects/ee_fire_monitoring",
+    "host": "vpn37-53.remote-access.kth.se",
+    "username": "zhaoyu",
+    "executable": "/Users/zhaoyu/PycharmProjects/ee_fire_monitoring/venv/bin/python3.7"
+}

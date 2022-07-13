@@ -114,10 +114,8 @@ class SegModel(pl.LightningModule):
             f"{stage}_per_image_f1": per_image_f1,
             f"{stage}_dataset_f1": dataset_f1,
         }
-        if stage=='val':
-            self.log_dict(metrics, on_step=False, on_epoch=True, prog_bar=True, logger=True)
-        else:
-            self.log_dict(metrics, on_step=False, on_epoch=True, prog_bar=True, logger=False)
+
+        self.log_dict(metrics, on_step=False, on_epoch=True, prog_bar=True, logger=True)
 
     def training_step(self, batch, batch_idx):
         return self.shared_step(batch, "train")
