@@ -1,4 +1,5 @@
 import argparse
+import os
 from pprint import pprint
 import numpy as np
 import pytorch_lightning as pl
@@ -162,7 +163,7 @@ if __name__=='__main__':
     train_dataloader, val_dataloader = get_dateset(batch_size, data, nchannels)
 
     wandb.login(key='203b00f27d58654c3c411c11374267c050d68120')
-    wandb_logger = WandbLogger(project='proj2_palsar_torch', log_model='all', name='model_name' + str(model_name) + 'backbone_'+ str(backbone)+ 'batchsize_'+str(batch_size)+'learning_rate_'+str(learning_rate)+'_data_'+str(data)+'_nchannels_'+str(nchannels))
+    wandb_logger = WandbLogger(project='proj2_palsar_torch', log_model='False', name='model_name' + str(model_name) + 'backbone_'+ str(backbone)+ 'batchsize_'+str(batch_size)+'learning_rate_'+str(learning_rate)+'_data_'+str(data)+'_nchannels_'+str(nchannels))
     model = SegModel(arch=model_name, encoder_name=backbone, in_channels=nchannels, out_classes=1, learning_rate=learning_rate)
 
 
@@ -173,11 +174,12 @@ if __name__=='__main__':
 
     save_path = save_base_path + 'proj2_' + model_name + '_pretrained_' + backbone + '_dataset_' + data + '_nchannels_' + str(nchannels)
     if load_weights=='no':
-        checkpoint_callback = ModelCheckpoint(dirpath=save_path, save_top_k=1, monitor="val_loss")
+        checkpoint_callback = ModelCheckpoint(dirpath=save_path, save_top_k=2, monitor="val_loss")
         trainer = pl.Trainer(
-            gpus=2,
+            gpus=1,
             max_epochs=MAX_EPOCHS,
-            logger=wandb_logger
+            logger=wandb_logger,
+            callbacks=[checkpoint_callback]
         )
         trainer.fit(
             model,

@@ -1,0 +1,12 @@
+Traceback (most recent call last):
+  File "/Users/zhaoyu/PycharmProjects/ee_fire_monitoring/run_cnn_model_torch.py", line 180, in <module>
+    logger=wandb_logger
+  File "/Users/zhaoyu/PycharmProjects/ee_fire_monitoring/venv/lib/python3.7/site-packages/pytorch_lightning/utilities/argparse.py", line 339, in insert_env_defaults
+    return fn(self, **kwargs)
+  File "/Users/zhaoyu/PycharmProjects/ee_fire_monitoring/venv/lib/python3.7/site-packages/pytorch_lightning/trainer/trainer.py", line 502, in __init__
+    plugins=plugins,
+  File "/Users/zhaoyu/PycharmProjects/ee_fire_monitoring/venv/lib/python3.7/site-packages/pytorch_lightning/trainer/connectors/accelerator_connector.py", line 201, in __init__
+    self._set_parallel_devices_and_init_accelerator()
+  File "/Users/zhaoyu/PycharmProjects/ee_fire_monitoring/venv/lib/python3.7/site-packages/pytorch_lightning/trainer/connectors/accelerator_connector.py", line 520, in _set_parallel_devices_and_init_accelerator
+    f"{self.accelerator.__class__.__qualname__} can not run on your system"
+pytorch_lightning.utilities.exceptions.MisconfigurationException: GPUAccelerator can not run on your system since the accelerator is not available. The following accelerator(s) is available and can be passed into `accelerator` argument of `Trainer`: ['cpu'].
