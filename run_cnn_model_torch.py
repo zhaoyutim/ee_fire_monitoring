@@ -1,15 +1,17 @@
 import argparse
-import os
 from pprint import pprint
+from sys import platform
+
 import numpy as np
 import pytorch_lightning as pl
 import segmentation_models_pytorch as smp
 import torch
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import WandbLogger
-import wandb
 from torch.utils.data import Dataset, DataLoader
-from sys import platform
+
+import wandb
+
 
 class PalsarDataset(Dataset):
     def __init__(self, dataset_dir, nchannels):
@@ -113,7 +115,7 @@ class SegModel(pl.LightningModule):
             f"{stage}_dataset_f1": dataset_f1,
         }
 
-        self.log_dict(metrics, prog_bar=True, on_epoch=True)
+        self.log_dict(metrics, on_step=True, on_epoch=True, prog_bar=True, logger=True)
 
     def training_step(self, batch, batch_idx):
         return self.shared_step(batch, "train")
@@ -135,9 +137,6 @@ class SegModel(pl.LightningModule):
 
     def configure_optimizers(self):
         return torch.optim.Adam(self.parameters(), lr=self.learning_rate)
-
-
-
 
 if __name__=='__main__':
     parser = argparse.ArgumentParser(description='Process some integers.')
