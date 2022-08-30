@@ -29,12 +29,13 @@ class palsar:
         return ee.Image.cat([b08, b11, b12, index])
 
     def download_to_gcloud(self, dataset='train'):
-        elevation = ee.Image('CGIAR/SRTM90_V4').select('elevation')
+        elevation = ee.Image("USGS/GTOPO30").select('elevation')
         geoinfos=[]
         id_fire_list=[]
         lon_list=[]
         lat_list=[]
         elevation_list=[]
+        land_cover_list = []
         if dataset=='train':
             land_covers = ['needle', 'broadleaf', 'shrublands', 'savannas', 'grasslands']
             fire_info = config
@@ -62,6 +63,7 @@ class palsar:
                     lon_list.append(centroid.get('coordinates')[0])
                     lat_list.append(centroid.get('coordinates')[1])
                     elevation_list.append(ele_info.get('elevation'))
+                    land_cover_list.append(land_cover)
 
                     # pre_fire_end = datetime.datetime.fromtimestamp(poly.get('IDate').getInfo() / 1000)
                     # fire_year = pre_fire_end.year
@@ -181,13 +183,11 @@ class palsar:
             ID=id_fire_list,
             lon=lon_list,
             lat=lat_list,
-            ele_info=elevation_list
+            ele_info=elevation_list,
+            land_cover=land_cover_list
         )
         df = pd.DataFrame(geoinfo)
-        df.to_csv('geoinfo.csv')
-        # geoinfos.append(geoinfo)
-        # with open('geoinfos.yml', 'w') as outfile:
-        #     yaml.dump(geoinfos, outfile, default_flow_style=False)
+        df.to_csv('geoinfo'+dataset+'.csv')
 
     def download_to_local(self, dataset='train', create_time='2022-06-18'):
         storage_client = storage.Client()

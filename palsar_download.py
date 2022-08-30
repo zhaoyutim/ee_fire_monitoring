@@ -5,9 +5,12 @@ from google.cloud import storage
 
 from satellites.palsar import palsar
 # ee.Authenticate()
+import os
+os.environ['HTTP_PROXY'] = 'http://127.0.0.1:15236'
+os.environ['HTTPS_PROXY'] = 'http://127.0.0.1:15236'
 ee.Initialize()
 
 if __name__=='__main__':
     client = palsar()
-    client.download_to_gcloud('train')
+    client.download_to_gcloud('eva')
     # client.download_to_local('eva', '2022-06-20')

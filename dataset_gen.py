@@ -123,16 +123,16 @@ def dataset_eva_gen(dataset, nchannel, overlap):
     land_covers = ['needle', 'broadleaf', 'shrublands', 'savannas', 'grasslands', 'mixed']
     for land_cover in land_covers:
         if dataset=='palsar':
-            file_list = glob.glob('palsar_eva\\'+land_cover+'\\*\\*.tif')
+            file_list = glob.glob('palsar_eva/'+land_cover+'/*/*.tif')
         else:
-            file_list = glob.glob('palsar_s1_eva\\'+land_cover+'\\*\\*.tif')
+            file_list = glob.glob('palsar_s1_eva/'+land_cover+'/*/*.tif')
 
         for idx in range(len(file_list)):
             file_name = file_list[idx]
             dataset_eva_list = []
-            if len(file_name.split('\\')[2])==13:
-                fire_id = file_name.split('\\')[2][:-5]
-                landcover = file_name.split('\\')[1]
+            if len(file_name.split('/')[2])==13:
+                fire_id = file_name.split('/')[2][:-5]
+                landcover = file_name.split('/')[1]
                 print(fire_id)
                 th = config_eva.get(landcover).get(int(fire_id)).get('th')
                 bbox = config_eva.get(landcover).get(int(fire_id)).get('bbox')
@@ -199,11 +199,14 @@ def dataset_eva_gen(dataset, nchannel, overlap):
                             dataset_eva)
                     del dataset_eva
 
-def dataset_eva_gen_swe():
+def dataset_eva_gen_swe(dataset='palsar', nchannel=7):
     land_covers = ['savannas']
     for land_cover in land_covers:
-        file_list = glob.glob('palsar_evaluate/'+land_cover+'/*/*.tif')
-        overlap = 64+128
+        if dataset=='palsar':
+            file_list = glob.glob('palsar_evaluate/'+land_cover+'/*/*.tif')
+        else:
+            file_list = glob.glob('palsar_s1_evaluate/' + land_cover + '/*/*.tif')
+        overlap = 96+128
         for idx in range(len(file_list)):
             file_name = file_list[idx]
             dataset_eva_list = []
@@ -217,34 +220,67 @@ def dataset_eva_gen_swe():
                 _, size_x, size_y = tif_array.shape
                 tif_array = tif_array.transpose((1, 2, 0))
                 tif_array = np.nan_to_num(tif_array)
-                data_output = np.zeros((tif_array.shape[0], tif_array.shape[1], 8))
-                img = np.zeros((tif_array.shape[0], tif_array.shape[1], 3))
-                for i in range(7):
-                    data_output[:, :, i] = remove_outliers(tif_array[:, :, i], 1)
-                    # data_output[:, :, i] = np.abs(np.nan_to_num(standardization(data_output[:, :, i])))
-                # img = (tif_array[:, :, 4:7] - tif_array[:, :, 4:7].min()) / (tif_array[:, :, 4:7].max() - tif_array[:, :, 4:7].min())
-                # plt.imshow(img)
-                # plt.show()
-                label = np.nan_to_num(tif_array[:, :, 7])
-                data_output[:, :, 7] = label > 0
-                plt.title('c')
-                plt.imshow(data_output[:, :, 4], cmap='Reds')
-                plt.savefig('label', bbox_inches='tight')
-                plt.show()
 
+                if nchannel==7:
+                    data_output = np.zeros((tif_array.shape[0], tif_array.shape[1], 8))
+                    for i in range(7):
+                        data_output[:, :, i] = remove_outliers(tif_array[:, :, i], 1)
+                        data_output[:, :, i] = np.nan_to_num(standardization(data_output[:, :, i]))
+                    data_output[:, :, 7] = tif_array[:, :, 7] > 0
+                elif nchannel==4:
+                    data_output = np.zeros((tif_array.shape[0], tif_array.shape[1], 5))
+                    for i in range(4):
+                        data_output[:, :, i] = remove_outliers(tif_array[:, :, i], 1)
+                        data_output[:, :, i] = np.nan_to_num(standardization(data_output[:, :, i]))
+                    data_output[:, :, 4] = tif_array[:, :, 7] > 0
+                elif nchannel==3:
+                    data_output = np.zeros((tif_array.shape[0], tif_array.shape[1], 4))
+                    for i in range(3):
+                        data_output[:, :, i] = remove_outliers(tif_array[:, :, i + 4], 1)
+                        data_output[:, :, i] = np.nan_to_num(standardization(data_output[:, :, i]))
+                    data_output[:, :, 3] = tif_array[:, :, 7] > 0
+                del tif_array
+                img = np.zeros((data_output.shape[0],data_output.shape[1],3))
+                for i in range(3):
+                    img[:,:,i] = (data_output[:, :, i]-data_output[:, :, i].min())/(data_output[:, :, i].max()-data_output[:, :, i].min())
+                plt.title('dataset' + dataset + 'nchannels' + str(nchannel))
+                plt.imshow(img)
+                plt.show()
                 data_index_y = size_y // overlap
                 data_index_x = size_x // overlap
+                # while (data_index_x-1)*overlap+256>=size_x:
+                #     data_index_x-=1
+                # while (data_index_y-1)*overlap+256>=size_y:
+                #     data_index_y-=1
                 for i in range(data_index_x):
                     for j in range(data_index_y):
                         if (i * overlap) + 256 < size_x and (j * overlap) + 256 < size_y:
-                            dataset_eva_list.append(data_output[i * overlap: (i * overlap) + 256, j * overlap: (j * overlap) + 256, :])
+                            dataset_eva_list.append(data_output[i * overlap: (i * overlap) + 256, j * overlap: (j * overlap) + 256, :].astype(np.float32))
+                        elif(i * overlap) + 256 >= size_x and (j * overlap) + 256 < size_y:
+                            temp_img = np.zeros((256, 256, nchannel+1))
+                            temp_img[:size_x-i * overlap, :,:] = data_output[i * overlap:, j * overlap:j * overlap+256, :]
+                            dataset_eva_list.append(temp_img)
+                        elif (i * overlap) + 256 < size_x and (j * overlap) + 256 >= size_y:
+                            temp_img = np.zeros((256, 256, nchannel+1))
+                            temp_img[:, :size_y - j * overlap,:] = data_output[i * overlap:i * overlap+256, j * overlap:, :]
+                            dataset_eva_list.append(temp_img)
+                        else:
+                            temp_img = np.zeros((256, 256, nchannel+1))
+                            temp_img[:size_x - i * overlap, :size_y - j * overlap,:] = data_output[i * overlap:, j * overlap:,:]
+                            dataset_eva_list.append(temp_img)
                 dataset_eva = np.stack(dataset_eva_list, axis=0)
-                np.save('dataset/' + landcover + fire_id + 'x' + str(data_index_x) + 'y' + str(data_index_y) + '.npy',
-                        dataset_eva)
+                print(fire_id + 'x' + str(data_index_x) + 'y' + str(data_index_y) + 'nchannels_' + str(nchannel))
+                print(dataset_eva.shape)
+                if dataset=='palsar':
+                    np.save('dataset/'+str(nchannel)+'/' + landcover + fire_id + 'x' + str(data_index_x) + 'y' + str(data_index_y) + 'nchannels_' + str(nchannel) + '.npy',
+                            dataset_eva)
+                else:
+                    np.save('dataset_s1/'+str(nchannel)+'/' + landcover + fire_id + 'x' + str(data_index_x) + 'y' + str(data_index_y) + 'nchannels_' + str(nchannel) + '.npy',
+                            dataset_eva)
 
 if __name__ == '__main__':
     # dataset_gen('s1',nchannel=7)
     for data in ['s1', 'palsar']:
         for nchannel in [3,4,7]:
             dataset_eva_gen(data,nchannel=nchannel, overlap = 96+128)
-    # dataset_eva_gen_swe()
+            # dataset_eva_gen_swe(data, nchannel=nchannel)
