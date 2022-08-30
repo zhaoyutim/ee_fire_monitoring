@@ -6,13 +6,21 @@ s1_eva
 svgs
 palsar_evaluate
 palsar_s1_eva
+<<<<<<< HEAD
 data/palsar_s1_evaluate
+=======
+palsar_s1_evaluate
+>>>>>>> 97c93eb (add torchenv)
 keras_unet_collection
 palsar
 figure
 figure_eva
 model
+<<<<<<< HEAD
 BurnSeverityMapV2
 wandb
 .DS_Store
 .idea
+=======
+BurnSeverityMapV2
+>>>>>>> 97c93eb (add torchenv)

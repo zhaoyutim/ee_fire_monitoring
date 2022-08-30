@@ -7,8 +7,8 @@ from satellites.palsar import palsar
 from satellites.gedi import gedi
 # ee.Authenticate()
 import os
-# os.environ['HTTP_PROXY'] = 'http://127.0.0.1:15236'
-# os.environ['HTTPS_PROXY'] = 'http://127.0.0.1:15236'
+os.environ['HTTP_PROXY'] = 'http://127.0.0.1:15236'
+os.environ['HTTPS_PROXY'] = 'http://127.0.0.1:15236'
 ee.Initialize()
 
 if __name__=='__main__':
