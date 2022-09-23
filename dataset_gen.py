@@ -6,10 +6,10 @@ import rasterio
 import yaml
 from sklearn import preprocessing
 
-with open("dataset_config/land_cover_id.yaml", "r", encoding="utf8") as f:
+with open("config/land_cover_id.yaml", "r", encoding="utf8") as f:
     config = yaml.load(f, Loader=yaml.FullLoader)
 
-with open("dataset_config/land_cover_id_eva.yaml", "r", encoding="utf8") as f:
+with open("config/land_cover_id_eva.yaml", "r", encoding="utf8") as f:
     config_eva = yaml.load(f, Loader=yaml.FullLoader)
 
 
