@@ -7,13 +7,13 @@ from satellites.palsar import palsar
 from satellites.gedi import gedi
 # ee.Authenticate()
 import os
-os.environ['HTTP_PROXY'] = 'http://127.0.0.1:15236'
-os.environ['HTTPS_PROXY'] = 'http://127.0.0.1:15236'
+# os.environ['HTTP_PROXY'] = 'http://127.0.0.1:15236'
+# os.environ['HTTPS_PROXY'] = 'http://127.0.0.1:15236'
 ee.Initialize()
 
 if __name__=='__main__':
-    # client = palsar()
+    client = palsar()
     gedi = gedi()
-    gedi.download_to_gcloud()
+    gedi.download_to_gcloud(['sa', 'af', 'eu', 'sas', 'nas', 'au'])
     # client.download_to_gcloud('eva')
     # client.download_to_local('eva', '2022-06-20')
