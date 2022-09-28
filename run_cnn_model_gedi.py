@@ -172,7 +172,7 @@ if __name__=='__main__':
     dice_loss = DiceLoss()
     bce_dice_loss = binary_crossentropy + dice_loss
     masked_mse = masked_mse(np.nan)
-    model.compile(optimizer, loss=masked_mse)
+    model.compile(optimizer, loss=tf.keras.losses.MeanSquaredError())
 
     # options = tf.data.Options()
     # options.experimental_distribute.auto_shard_policy = tf.data.experimental.AutoShardPolicy.DATA
