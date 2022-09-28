@@ -35,9 +35,9 @@ def get_dateset_gedi(batch_size):
     train_array = np.concatenate((train_array, np.load('/geoinfo_vol1/zhao2/proj4_dataset/proj4_train_sa' + '.npy').astype(np.float32)), axis=0)
     train_array = np.concatenate((train_array, np.load('/geoinfo_vol1/zhao2/proj4_dataset/proj4_train_eu' + '.npy').astype(np.float32)), axis=0)
     train_array = np.concatenate((train_array, np.load('/geoinfo_vol1/zhao2/proj4_dataset/proj4_train_au' + '.npy').astype(np.float32)), axis=0)
-    # train_array = np.concatenate((train_array, np.load('/geoinfo_vol1/zhao2/proj4_dataset/proj4_train_af' + '.npy').astype(np.float32)), axis=0)
-    # train_array = np.concatenate((train_array, np.load('/geoinfo_vol1/zhao2/proj4_dataset/proj4_train_sas' + '.npy').astype(np.float32)), axis=0)
-    # train_array = np.concatenate((train_array, np.load('/geoinfo_vol1/zhao2/proj4_dataset/proj4_train_nas' + '.npy').astype(np.float32)), axis=0)
+    train_array = np.concatenate((train_array, np.load('/geoinfo_vol1/zhao2/proj4_dataset/proj4_train_af' + '.npy').astype(np.float32)), axis=0)
+    train_array = np.concatenate((train_array, np.load('/geoinfo_vol1/zhao2/proj4_dataset/proj4_train_sas' + '.npy').astype(np.float32)), axis=0)
+    train_array = np.concatenate((train_array, np.load('/geoinfo_vol1/zhao2/proj4_dataset/proj4_train_nas' + '.npy').astype(np.float32)), axis=0)
     y_dataset = np.nan_to_num(train_array[:,:,:,8]/100, nan=-1)
     x_train, x_val, y_train, y_val = train_test_split(train_array[:,:,:,:3], y_dataset, test_size=0.2, random_state=0)
     def make_generator(inputs, labels):
