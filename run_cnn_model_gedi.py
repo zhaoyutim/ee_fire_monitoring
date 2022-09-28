@@ -162,9 +162,9 @@ if __name__=='__main__':
             output_resize = tf.keras.layers.Resizing(256,256)(output)
             model = tf.keras.Model(input, output_resize, name=model_name)
     model.summary()
-    checkpoint = ModelCheckpoint(
-        '/geoinfo_vol1/zhao2/proj4_model/proj4_' + model_name + '_pretrained_' + backbone,
-        monitor="val_loss", mode="min", save_best_only=True, verbose=1)
+    # checkpoint = ModelCheckpoint(
+    #     '/geoinfo_vol1/zhao2/proj4_model/proj4_' + model_name + '_pretrained_' + backbone,
+    #     monitor="val_loss", mode="min", save_best_only=True, verbose=1)
     optimizer = tf.optimizers.Adam(learning_rate=learning_rate)
     iou_score=IOUScore(threshold=0.5)
     f1_score=FScore(beta=1, threshold=0.5)
@@ -175,7 +175,7 @@ if __name__=='__main__':
     model.compile(optimizer, loss=masked_mse, metrics= masked_mse)
 
     options = tf.data.Options()
-    options.experimental_distribute.auto_shard_policy = tf.data.experimental.AutoShardPolicy.OFF
+    options.experimental_distribute.auto_shard_policy = tf.data.experimental.AutoShardPolicy.AUTO
     train_dataset = train_dataset.with_options(options)
     val_dataset = val_dataset.with_options(options)
 
@@ -187,6 +187,6 @@ if __name__=='__main__':
         validation_data=val_dataset,
         validation_steps=validation_steps,
         epochs=MAX_EPOCHS,
-        callbacks=[WandbCallback(), checkpoint],
+        callbacks=[WandbCallback()],
     )
     model.save('/geoinfo_vol1/zhao2/proj4_model/proj4_'+model_name+'_pretrained_'+backbone)
