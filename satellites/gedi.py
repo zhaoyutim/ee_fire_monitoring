@@ -89,7 +89,7 @@ class gedi:
             with rasterio.open(file_path, 'w', **profile) as dst:
                 dst.write(arr.astype(rasterio.float32))
 
-    def generate_dataset_proj4(self, region_ids = ['na']):
+    def generate_dataset_proj4(self, region_ids = ['na', 'sa', 'af', 'eu', 'au', 'sas', 'nas']):
         params_fetching = ParamsFetching()
         for region_id in region_ids:
             path = os.path.join('proj4_gedi_palsar', region_id.upper(), '*.tif')
@@ -98,7 +98,7 @@ class gedi:
             print('region_id:', region_id)
             index=0
             for file in file_list:
-                output_array = np.zeros((256, 256, 9))
+                output_array = np.zeros((256, 256, 9)).astype(np.float32)
                 array, _ = self.read_tiff(file)
                 if array.shape[0]!=256 or array.shape[1]!=256 or array.shape[2]!=9:
                     continue
@@ -109,7 +109,6 @@ class gedi:
                 dataset_list.append(output_array)
                 index += 1
                 if index % 1000==0:
-                    break
                     print('{:.2f}% completed'.format(index*100/len(file_list)))
             dataset = np.stack(dataset_list, axis=0)
             np.save('dataset/proj4_train_'+region_id+'.npy', dataset)

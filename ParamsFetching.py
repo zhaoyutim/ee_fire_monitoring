@@ -24,7 +24,7 @@ class ParamsFetching:
         return params
 
     def get_agbd(self, array):
-        agbd = np.zeros((256, 256))
+        agbd = np.zeros((256, 256)).astype(np.float32)
         ps_array = array[:,:,0]
         ps_list = np.unique(ps_array).astype(int).tolist()
         for ps_id in ps_list:
