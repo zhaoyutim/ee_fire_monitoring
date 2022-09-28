@@ -31,23 +31,13 @@ def set_global_seed(seed=21):
     random.seed(seed)
 
 def get_dateset_gedi(batch_size):
-    if platform.system()=='Darwin':
-        train_array_na = np.load('dataset/proj4_train_na.npy').astype(np.float32)
-        train_array_sa = np.load('dataset/proj4_train_sa.npy').astype(np.float32)
-        train_array_eu = np.load('dataset/proj4_train_eu.npy').astype(np.float32)
-        train_array_au = np.load('dataset/proj4_train_au.npy').astype(np.float32)
-        train_array_af = np.load('dataset/proj4_train_af.npy').astype(np.float32)
-        train_array_sas = np.load('dataset/proj4_train_sas.npy').astype(np.float32)
-        train_array_nas = np.load('dataset/proj4_train_nas.npy').astype(np.float32)
-    else:
-        train_array_na = np.load('/geoinfo_vol1/zhao2/proj4_dataset/proj4_train_na'+'.npy').astype(np.float32)
-        train_array_sa = np.load('/geoinfo_vol1/zhao2/proj4_dataset/proj4_train_sa' + '.npy').astype(np.float32)
-        train_array_eu = np.load('/geoinfo_vol1/zhao2/proj4_dataset/proj4_train_eu' + '.npy').astype(np.float32)
-        train_array_au = np.load('/geoinfo_vol1/zhao2/proj4_dataset/proj4_train_au' + '.npy').astype(np.float32)
-        train_array_af = np.load('/geoinfo_vol1/zhao2/proj4_dataset/proj4_train_af' + '.npy').astype(np.float32)
-        train_array_sas = np.load('/geoinfo_vol1/zhao2/proj4_dataset/proj4_train_sas' + '.npy').astype(np.float32)
-        train_array_nas = np.load('/geoinfo_vol1/zhao2/proj4_dataset/proj4_train_nas' + '.npy').astype(np.float32)
-    train_array=np.concatenate((train_array_na, train_array_sa, train_array_eu, train_array_au, train_array_af, train_array_sas, train_array_nas),axis=0)
+    train_array = np.load('/geoinfo_vol1/zhao2/proj4_dataset/proj4_train_na'+'.npy').astype(np.float32)
+    train_array = np.concatenate((train_array, np.load('/geoinfo_vol1/zhao2/proj4_dataset/proj4_train_sa' + '.npy').astype(np.float32)), axis=0)
+    train_array = np.concatenate((train_array, np.load('/geoinfo_vol1/zhao2/proj4_dataset/proj4_train_eu' + '.npy').astype(np.float32)), axis=0)
+    train_array = np.concatenate((train_array, np.load('/geoinfo_vol1/zhao2/proj4_dataset/proj4_train_au' + '.npy').astype(np.float32)), axis=0)
+    train_array = np.concatenate((train_array, np.load('/geoinfo_vol1/zhao2/proj4_dataset/proj4_train_af' + '.npy').astype(np.float32)), axis=0)
+    train_array = np.concatenate((train_array, np.load('/geoinfo_vol1/zhao2/proj4_dataset/proj4_train_sas' + '.npy').astype(np.float32)), axis=0)
+    train_array = np.concatenate((train_array, np.load('/geoinfo_vol1/zhao2/proj4_dataset/proj4_train_nas' + '.npy').astype(np.float32)), axis=0)
     y_dataset = np.nan_to_num(train_array[:,:,:,8], nan=-1)
     x_train, x_val, y_train, y_val = train_test_split(train_array[:,:,:,:3], y_dataset, test_size=0.2, random_state=0)
     def make_generator(inputs, labels):
