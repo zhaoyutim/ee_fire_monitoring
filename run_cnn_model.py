@@ -12,7 +12,7 @@ from tensorflow.python.keras.callbacks import ModelCheckpoint
 from wandb.integration.keras import WandbCallback
 from segmentation_models.losses import DiceLoss, BinaryCELoss
 from segmentation_models import Unet, Linknet, PSPNet, FPN
-from keras_unet_collection import models
+import tensorflow.python.keras.backend as K
 from model.swintransformer import SwinTransformer
 
 
@@ -54,6 +54,15 @@ def dice_coef(y_true, y_pred):
     intersection = tf.math.reduce_sum(y_true_f * y_pred_f)
     smooth = 1.0
     return 1-(2.0*intersection+smooth)/(tf.math.reduce_sum(y_true_f)+tf.math.reduce_sum(y_pred_f)+smooth)
+
+def masked_mse(mask_value):
+    def f(y_true, y_pred):
+        mask_true = K.cast(K.not_equal(y_true, mask_value), K.floatx())
+        masked_squared_error = K.square(mask_true * (y_true - y_pred))
+        masked_mse = K.sum(masked_squared_error, axis=-1) / K.sum(mask_true, axis=-1)
+        return masked_mse
+    f.__name__ = 'Masked MSE (mask_value={})'.format(mask_value)
+    return f
 
 def wandb_config(model_name, backbone, batch_size, learning_rate, data, nchannels):
     wandb.login()
@@ -158,24 +167,6 @@ if __name__=='__main__':
             output = basemodel(input_resize)
             output_resize = tf.keras.layers.Resizing(256,256)(output)
             model = tf.keras.Model(input, output_resize, name=model_name)
-        elif model_name == 'transunet':
-            input = tf.keras.Input(shape=(None, None, nchannels))
-            conv1 = tf.keras.layers.Conv2D(3, 3, activation = 'linear', padding = 'same', kernel_initializer = 'he_normal')(input)
-            basemodel = models.transunet_2d((256, 256, 3), filter_num=[64, 128, 256, 512], n_labels=1, stack_num_down=2, stack_num_up=2,
-                                        embed_dim=256, num_mlp=768, num_heads=3, num_transformer=12,
-                                        activation='ReLU', mlp_activation='GELU', output_activation='Sigmoid',
-                                        batch_norm=True, pool=True, unpool='bilinear', name='transunet')
-            output = basemodel(conv1)
-            model = tf.keras.Model(input, output, name=model_name)
-        elif model_name == 'unet_2d':
-            input = tf.keras.Input(shape=(None, None, nchannels))
-            conv1 = tf.keras.layers.Conv2D(3, 3, activation = 'linear', padding = 'same', kernel_initializer = 'he_normal')(input)
-            basemodel = models.unet_2d((None, None, 3), [64, 128, 256, 512, 1024], n_labels=1,
-                                       stack_num_down=2, stack_num_up=1,
-                                       activation='GELU', output_activation='Sigmoid',
-                                       batch_norm=True, pool='max', unpool='nearest', name='unet')
-            output = basemodel(conv1)
-            model = tf.keras.Model(input, output, name=model_name)
         model.summary()
         optimizer = tf.optimizers.Adam(learning_rate=learning_rate)
         checkpoint = ModelCheckpoint('/geoinfo_vol1/zhao2/proj2_model/proj2_'+model_name+'_pretrained_'+backbone+'dataset_'+data, monitor="val_loss", mode="min", save_best_only=True, verbose=1)
@@ -184,6 +175,7 @@ if __name__=='__main__':
         binary_crossentropy = BinaryCELoss()
         dice_loss = DiceLoss()
         bce_dice_loss = binary_crossentropy + dice_loss
+        masked_mse_loss = masked_mse(np.nan)
         model.compile(optimizer, loss=dice_coef, metrics=[iou_score, f1_score])
 
     options = tf.data.Options()
