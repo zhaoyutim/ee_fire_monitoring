@@ -128,9 +128,9 @@ if __name__=='__main__':
             # x = data_augmentation(x)
             conv1 = tf.keras.layers.Conv2D(3, 3, activation = 'linear', padding = 'same', kernel_initializer = 'he_normal')(input)
             if backbone == 'None':
-                basemodel = Unet(encoder_weights='imagenet', activation='sigmoid')
+                basemodel = Unet(encoder_weights='imagenet', activation='relu')
             else:
-                basemodel = Unet(backbone, encoder_weights='imagenet', activation='sigmoid')
+                basemodel = Unet(backbone, encoder_weights='imagenet', activation='relu')
             output = basemodel(conv1)
             model = tf.keras.Model(input, output, name=model_name)
 
