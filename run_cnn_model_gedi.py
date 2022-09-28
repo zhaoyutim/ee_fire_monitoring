@@ -175,7 +175,7 @@ if __name__=='__main__':
     model.compile(optimizer, loss=masked_mse, metrics= masked_mse)
 
     options = tf.data.Options()
-    options.experimental_distribute.auto_shard_policy = tf.data.experimental.AutoShardPolicy.AUTO
+    options.experimental_distribute.auto_shard_policy = tf.data.experimental.AutoShardPolicy.DATA
     train_dataset = train_dataset.with_options(options)
     val_dataset = val_dataset.with_options(options)
 
