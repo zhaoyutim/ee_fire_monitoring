@@ -38,7 +38,7 @@ def get_dateset_gedi(batch_size):
     x_train = np.concatenate((x_train, np.load('/geoinfo_vol1/zhao2/proj4_dataset/proj4_train_af' + '.npy').astype(np.float32)), axis=0)
     x_train = np.concatenate((x_train, np.load('/geoinfo_vol1/zhao2/proj4_dataset/proj4_train_sas' + '.npy').astype(np.float32)), axis=0)
     x_train = np.concatenate((x_train, np.load('/geoinfo_vol1/zhao2/proj4_dataset/proj4_train_nas' + '.npy').astype(np.float32)), axis=0)
-    y_train = np.nan_to_num(x_train[:,:,:,8]/100, nan=-1)
+    y_train = np.nan_to_num(x_train[:,:,:,8]/10, nan=-1)
     x_train, x_val, y_train, y_val = train_test_split(x_train[:,:,:,:3], y_train, test_size=0.2, random_state=0)
     def make_generator(inputs, labels):
         def _generator():
