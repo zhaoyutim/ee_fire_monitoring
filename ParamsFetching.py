@@ -29,21 +29,21 @@ class ParamsFetching:
         ps_list = np.unique(ps_array).astype(int).tolist()
         for ps_id in ps_list:
             if ps_id == 241 or ps_id not in self.stratum_dict.keys():
-                array_masked_by_ps = np.where(array == ps_id, np.nan, 0)
-                agbd += array_masked_by_ps[:, :, 0]
                 continue
-            array_masked_by_ps = np.where(array == ps_id, array, 0)
             params = self.config.get(self.stratum_dict[ps_id])
             rh1 = params.get('c_rh')
             rh2 = params.get('d_rh')
+            i1 = self.rh_index_dict[rh1]
+            rh1_masked_by_ps = np.where(ps_array == ps_id, array[:, :, i1], np.nan)
             if rh2 != 0:
-                i1 = self.rh_index_dict[rh1]
                 i2 = self.rh_index_dict[rh2]
-                agbd += params.get('a') * pow((params.get('b') + params.get('c') * np.sqrt(array_masked_by_ps[:, :, i1]+100) +
-                                               params.get('d') * np.sqrt(array_masked_by_ps[:, :, i2]+100)), 2)
+                rh2_masked_by_ps = np.where(ps_array == ps_id, array[:, :, i2], np.nan)
+                agbd_ps = params.get('a') * pow((params.get('b') + params.get('c') * np.sqrt(rh1_masked_by_ps+100) +
+                                               params.get('d') * np.sqrt(rh2_masked_by_ps+100)), 2)
             else:
-                i1 = self.rh_index_dict[rh1]
-                agbd += params.get('a') * pow(params.get('b') + params.get('c') * np.sqrt(array_masked_by_ps[:, :, i1] + 100), 2)
+                agbd_ps = params.get('a') * pow(params.get('b') + params.get('c') * np.sqrt(rh1_masked_by_ps + 100), 2)
+            agbd += np.where(np.isnan(agbd_ps), 0, agbd_ps)
+        agbd = np.where(agbd==0, -1, agbd)
         return agbd
 
 if __name__=='__main__':

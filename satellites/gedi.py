@@ -8,6 +8,7 @@ import rasterio
 import yaml
 import ee
 from google.cloud import storage
+from matplotlib import pyplot as plt
 
 from ParamsFetching import ParamsFetching
 
@@ -88,7 +89,7 @@ class gedi:
             with rasterio.open(file_path, 'w', **profile) as dst:
                 dst.write(arr.astype(rasterio.float32))
 
-    def generate_dataset_proj4(self, region_ids = ['sa', 'af', 'eu', 'sas', 'nas', 'au', 'na']):
+    def generate_dataset_proj4(self, region_ids = ['na']):
         params_fetching = ParamsFetching()
         for region_id in region_ids:
             path = os.path.join('proj4_gedi_palsar', region_id.upper(), '*.tif')
@@ -108,6 +109,7 @@ class gedi:
                 dataset_list.append(output_array)
                 index += 1
                 if index % 1000==0:
+                    break
                     print('{:.2f}% completed'.format(index*100/len(file_list)))
             dataset = np.stack(dataset_list, axis=0)
             np.save('dataset/proj4_train_'+region_id+'.npy', dataset)
