@@ -180,7 +180,7 @@ if __name__=='__main__':
     train_dataset = train_dataset.with_options(options)
     val_dataset = val_dataset.with_options(options)
 
-    print('training in progress')
+    print('training in progress ')
     history = model.fit(
         train_dataset,
         batch_size=batch_size,
