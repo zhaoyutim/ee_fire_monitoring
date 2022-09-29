@@ -104,6 +104,27 @@ class gedi:
         array = np.stack(new_array, axis=0)
         return array
 
+    def remove_outliers(self, x, outlierConstant):
+        upper_quartile = np.percentile(x, 75)
+        lower_quartile = np.percentile(x, 25)
+        # print(upper_quartile, lower_quartile)
+        IQR = (upper_quartile - lower_quartile) * outlierConstant
+        quartileSet = (lower_quartile - IQR, upper_quartile + IQR)
+        # print(quartileSet)
+
+        result = x * (x >= quartileSet[0]) * (x <= quartileSet[1])
+
+        return result
+
+    def standardization(self, x):
+        # scaler = preprocessing.StandardScaler().fit(x)
+        # x = scaler.transform(x)
+        x = (x - x.mean()) / x.std()
+        return x
+
+    def normalization(self, x):
+        return 255 * (x - np.nanmin(x)) / (np.nanmax(x) - np.nanmin(x))
+
 
     def generate_dataset_proj4(self, region_ids = ['na', 'sa', 'af', 'eu', 'au', 'sas', 'nas']):
         params_fetching = ParamsFetching()
@@ -120,20 +141,22 @@ class gedi:
                     continue
 
                 agbd = params_fetching.get_agbd(array[:, :, 3:])
-                output_array[:, :, :3]=array[:,:,:3]
+                for i in range(3):
+                    output_array[:, :, i] = self.remove_outliers(array[:, :, i], 1)
+                    output_array[:, :, i] = np.nan_to_num(self.standardization(output_array[:, :, i]))
                 output_array[:, :, 3:8] = array[:, :, 4:]
                 output_array[:, :, 8] = agbd
                 if np.nanmean(output_array[:,:,8])==-1:
                     continue
                 output_array = self.slice_into_small_tiles(output_array)
                 dataset_list.append(output_array)
-                img = np.zeros((64,64,3))
-                for i in range(3):
-                    img[:,:,i] = (output_array[0,:,:,i]-output_array[0,:,:,i].min())/(output_array[0,:,:,i].max()-output_array[0,:,:,i].min())
-                plt.imshow(img)
-                plt.show()
-                plt.imshow(output_array[0,:,:,8])
-                plt.show()
+                # img = np.zeros((64,64,3))
+                # for i in range(3):
+                #     img[:,:,i] = (output_array[0,:,:,i]-output_array[0,:,:,i].min())/(output_array[0,:,:,i].max()-output_array[0,:,:,i].min())
+                # plt.imshow(img)
+                # plt.show()
+                # plt.imshow(output_array[0,:,:,8])
+                # plt.show()
                 index += 1
                 if index % 1000==0:
                     break
