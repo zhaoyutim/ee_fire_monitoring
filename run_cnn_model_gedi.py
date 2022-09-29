@@ -127,14 +127,14 @@ if __name__=='__main__':
             model = tf.keras.Model(input, output, name=model_name)
 
         elif model_name == 'unet':
-            input = tf.keras.Input(shape=(None, None, 3))
+            input = tf.keras.Input(shape=(64, 64, 3))
             # x = resize_and_rescale(input)
             # x = data_augmentation(x)
             conv1 = tf.keras.layers.Conv2D(3, 3, activation = 'linear', padding = 'same', kernel_initializer = 'he_normal')(input)
             if backbone == 'None':
-                basemodel = Unet(encoder_weights='imagenet', activation='linear')
+                basemodel = Unet(input_shape=(64, 64, 3), encoder_weights='imagenet', activation='linear')
             else:
-                basemodel = Unet(backbone, encoder_weights='imagenet', activation='linear')
+                basemodel = Unet(backbone, input_shape=(64, 64, 3), encoder_weights='imagenet', activation='linear')
             output = basemodel(conv1)
             model = tf.keras.Model(input, output, name=model_name)
 

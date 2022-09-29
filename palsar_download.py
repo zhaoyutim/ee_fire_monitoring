@@ -16,6 +16,6 @@ if __name__=='__main__':
     gedi = gedi()
     # gedi.download_to_gcloud(['sa', 'af', 'eu', 'sas', 'nas', 'au'])
     # gedi.download_to_local_proj4('2022-09-20')
-    gedi.generate_dataset_proj4(['au', 'sas', 'nas'])
+    gedi.generate_dataset_proj4()
     # client.download_to_gcloud('eva')
     # client.download_to_local('eva', '2022-06-20')

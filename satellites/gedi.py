@@ -14,6 +14,7 @@ from ParamsFetching import ParamsFetching
 
 with open("config/sample.yml", "r", encoding="utf8") as f:
     config = yaml.load(f, Loader=yaml.FullLoader)
+
 class gedi:
     def download_to_gcloud(self, region_ids=['na'], dataset='train'):
         year = 2019
@@ -88,6 +89,21 @@ class gedi:
         with rasterio.Env():
             with rasterio.open(file_path, 'w', **profile) as dst:
                 dst.write(arr.astype(rasterio.float32))
+    def slice_into_small_tiles(self, array):
+        shape = array.shape[0]
+        new_shape = shape//4
+        new_array = []
+        for i in range(4):
+            for j in range(4):
+                piece = array[new_shape*i:new_shape*(i+1), new_shape*j:new_shape*(j+1), :]
+                # plt.imshow(piece[:,:,8])
+                # plt.show()
+                if np.nanmean(piece[:,:,8])==-1.0:
+                    continue
+                new_array.append(piece)
+        array = np.stack(new_array, axis=0)
+        return array
+
 
     def generate_dataset_proj4(self, region_ids = ['na', 'sa', 'af', 'eu', 'au', 'sas', 'nas']):
         params_fetching = ParamsFetching()
@@ -102,13 +118,25 @@ class gedi:
                 array, _ = self.read_tiff(file)
                 if array.shape[0]!=256 or array.shape[1]!=256 or array.shape[2]!=9:
                     continue
+
                 agbd = params_fetching.get_agbd(array[:, :, 3:])
-                output_array[:, :, 3]=array[:,:,3]
+                output_array[:, :, :3]=array[:,:,:3]
                 output_array[:, :, 3:8] = array[:, :, 4:]
                 output_array[:, :, 8] = agbd
+                if np.nanmean(output_array[:,:,8])==-1:
+                    continue
+                output_array = self.slice_into_small_tiles(output_array)
                 dataset_list.append(output_array)
+                img = np.zeros((64,64,3))
+                for i in range(3):
+                    img[:,:,i] = (output_array[0,:,:,i]-output_array[0,:,:,i].min())/(output_array[0,:,:,i].max()-output_array[0,:,:,i].min())
+                plt.imshow(img)
+                plt.show()
+                plt.imshow(output_array[0,:,:,8])
+                plt.show()
                 index += 1
                 if index % 1000==0:
+                    break
                     print('{:.2f}% completed'.format(index*100/len(file_list)))
-            dataset = np.stack(dataset_list, axis=0)
+            dataset = np.concatenate(dataset_list, axis=0)
             np.save('dataset/proj4_train_'+region_id+'.npy', dataset)
