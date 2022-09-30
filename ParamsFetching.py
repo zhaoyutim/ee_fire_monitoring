@@ -39,9 +39,9 @@ class ParamsFetching:
                 i2 = self.rh_index_dict[rh2]
                 rh2_masked_by_ps = np.where(ps_array == ps_id, array[:, :, i2], np.nan)
                 agbd_ps = params.get('a') * pow((params.get('b') + params.get('c') * np.sqrt(rh1_masked_by_ps+100) +
-                                               params.get('d') * np.sqrt(rh2_masked_by_ps+100)), 2)
+                                               params.get('d') * np.sqrt(rh2_masked_by_ps+100)), 2) /100
             else:
-                agbd_ps = params.get('a') * pow(params.get('b') + params.get('c') * np.sqrt(rh1_masked_by_ps + 100), 2) / 10
+                agbd_ps = params.get('a') * pow(params.get('b') + params.get('c') * np.sqrt(rh1_masked_by_ps + 100), 2) / 100
             agbd += np.where(np.isnan(agbd_ps), 0, agbd_ps)
         agbd = np.where(agbd==0, -1, agbd)
         return agbd
