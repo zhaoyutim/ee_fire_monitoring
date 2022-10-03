@@ -180,7 +180,7 @@ if __name__=='__main__':
     binary_crossentropy = BinaryCELoss()
     dice_loss = DiceLoss()
     bce_dice_loss = binary_crossentropy + dice_loss
-    model.compile(optimizer, loss=masked_mse, metrics= masked_mae)
+    model.compile(optimizer, loss=masked_mae, metrics= masked_mse)
 
     options = tf.data.Options()
     options.experimental_distribute.auto_shard_policy = tf.data.experimental.AutoShardPolicy.DATA
