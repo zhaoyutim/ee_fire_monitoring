@@ -24,7 +24,9 @@ class gedi:
         sarHv_log = dataset.select('HV').first().pow(2).log10().multiply(10).subtract(83)
         sarhvhh = sarHv_log.subtract(sarHh_log).rename('HV-HH')
         composite = ee.Image([sarHh_log, sarHv_log, sarhvhh])
-        l4b = ee.Image('LARSE/GEDI/GEDI04_B_002').select('PS')
+        fnf = ee.ImageCollection('JAXA/ALOS/PALSAR/YEARLY/FNF').filter(ee.Filter.date(str(year), str(year + 1)))
+        fnf =  fnf.select('fnf').mosaic()
+        l4b = ee.Image('LARSE/GEDI/GEDI04_B_002').select(['PS', 'MU'])
         for region_id in region_ids:
             roi_col = ee.FeatureCollection('users/zhaoyutim/GEDI_SAMPLE_'+region_id.upper())
             size = roi_col.size().getInfo()
@@ -42,7 +44,7 @@ class gedi:
                     .filterDate(date_pre.difference(15, "day"), date_pre.advance(15, "day"))\
                     .map(self.qualityMask)\
                     .select(['rh40', 'rh50', 'rh60', 'rh70', 'rh98']).mosaic()
-                output = ee.Image([composite, l4b, gedi])
+                output = ee.Image([composite, fnf, l4b, gedi])
                 dir = 'proj4_gedi_palsar' + '/' + region_id.upper() + '/' + 'class_' + class_id + '_' + str(i)
                 image_task = ee.batch.Export.image.toCloudStorage(
                     image=output.toFloat(),
@@ -52,7 +54,7 @@ class gedi:
                     scale=25,
                     maxPixels=1e11,
                     region=roi.geometry(),
-                    fileDimensions=256
+                    fileDimensions=256*5
                 )
                 image_task.start()
                 print('Start with image task (id: {}).'.format(
@@ -61,7 +63,7 @@ class gedi:
     def qualityMask(self, img):
         return img.updateMask(img.select('quality_flag').eq(1)).updateMask(img.select('degrade_flag').eq(0))
 
-    def download_to_local_proj4(self, region_ids = ['na', 'sa', 'af', 'eu', 'sas', 'nas', 'au'], create_time='2022-06-18'):
+    def download_to_local_proj4(self, create_time='2022-06-18'):
         storage_client = storage.Client()
         bucket = storage_client.bucket('ai4wildfire')
         blobs = bucket.list_blobs(prefix='proj4_gedi_palsar')
@@ -89,19 +91,22 @@ class gedi:
         with rasterio.Env():
             with rasterio.open(file_path, 'w', **profile) as dst:
                 dst.write(arr.astype(rasterio.float32))
-    def slice_into_small_tiles(self, array):
+    def slice_into_small_tiles(self, array, division_factor, concat=False):
         shape = array.shape[0]
-        new_shape = shape//4
+        new_shape = shape//division_factor
         new_array = []
-        for i in range(4):
-            for j in range(4):
+        for i in range(division_factor):
+            for j in range(division_factor):
                 piece = array[new_shape*i:new_shape*(i+1), new_shape*j:new_shape*(j+1), :]
                 # plt.imshow(piece[:,:,8])
                 # plt.show()
                 if np.nanmean(piece[:,:,8])==-1.0:
                     continue
                 new_array.append(piece)
-        array = np.stack(new_array, axis=0)
+        if concat==False:
+            array = np.stack(new_array, axis=0)
+        else:
+            array = np.concatenate(new_array, axis=0)
         return array
 
     def remove_outliers(self, x, outlierConstant):
@@ -135,20 +140,21 @@ class gedi:
             print('region_id:', region_id)
             index=0
             for file in file_list:
-                output_array = np.zeros((256, 256, 9)).astype(np.float32)
                 array, _ = self.read_tiff(file)
-                if array.shape[0]!=256 or array.shape[1]!=256 or array.shape[2]!=9:
+                if array.shape[0]!=1280 or array.shape[1]!=1280 or array.shape[2]!=11:
                     continue
-
-                agbd = params_fetching.get_agbd(array[:, :, 3:])
-                for i in range(3):
-                    output_array[:, :, i] = self.remove_outliers(array[:, :, i], 1)
-                    output_array[:, :, i] = np.nan_to_num(self.standardization(output_array[:, :, i]))
-                output_array[:, :, 3:8] = array[:, :, 4:]
-                output_array[:, :, 8] = agbd
-                if np.nanmean(output_array[:,:,8])==-1:
-                    continue
-                output_array = self.slice_into_small_tiles(output_array)
+                array = self.slice_into_small_tiles(array, 5)
+                output_array = np.zeros((array.shape[0], 256, 256, 10)).astype(np.float32)
+                for k in range(array.shape[0]):
+                    agbd = params_fetching.get_agbd(array[:, :, :, 4:])
+                    for i in range(3):
+                        output_array[:, :, :, i] = self.remove_outliers(array[:, :, :, i], 1)
+                        output_array[:, :, :, i] = np.nan_to_num(self.standardization(output_array[:, :, :, i]))
+                    output_array[:, :, :, 3:8] = array[:, :, :, 6:]
+                    output_array[:, :, :, 8] = agbd
+                    output_array[:, :, :, 9] = array[:, :, :, 5]
+                    if np.nanmean(output_array[:, :, :, 8])==-1:
+                        continue
                 dataset_list.append(output_array)
                 # img = np.zeros((64,64,3))
                 # for i in range(3):
@@ -157,9 +163,25 @@ class gedi:
                 # plt.show()
                 # plt.imshow(output_array[0,:,:,8])
                 # plt.show()
-                index += 1
+                index += 25
                 if index % 1000==0:
                     break
                     print('{:.2f}% completed'.format(index*100/len(file_list)))
             dataset = np.concatenate(dataset_list, axis=0)
             np.save('dataset/proj4_train_'+region_id+'.npy', dataset)
+
+    def evaluate_and_plot(self, test_array_path='proj4_gedi_palsar/NA/class_DBT_NA_00000000000-0000000000.tif'):
+        params_fetching = ParamsFetching()
+        fnf=2
+        test_array, _ = self.read_tiff(test_array_path)
+        # for i in range(3):
+        #     test_array[:, :, i] = self.remove_outliers(test_array[:, :, i], 1)
+        #     test_array[:, :, i] = np.nan_to_num(self.normalization(test_array[:, :, i]))
+        test_array = self.slice_into_small_tiles(test_array, 5)
+        agbd = params_fetching.get_agbd(test_array[:, :, :, 4:])
+        x_scatter = agbd[np.logical_and(agbd!=-1, np.logical_or(test_array[:, :, :, 3]==1, test_array[:, :, :, 3]==2))]
+        y_scatter = test_array[:,:,:,2][np.logical_and(agbd!=-1, np.logical_or(test_array[:, :, :, 3]==1, test_array[:, :, :, 3]==2))]
+        # plt.axis('off')
+        plt.scatter(x=x_scatter, y=y_scatter)
+        plt.show()
+

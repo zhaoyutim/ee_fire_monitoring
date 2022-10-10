@@ -24,26 +24,27 @@ class ParamsFetching:
         return params
 
     def get_agbd(self, array):
-        agbd = np.zeros((256, 256)).astype(np.float32)
-        ps_array = array[:,:,0]
-        ps_list = np.unique(ps_array).astype(int).tolist()
-        for ps_id in ps_list:
-            if ps_id == 241 or ps_id not in self.stratum_dict.keys():
-                continue
-            params = self.config.get(self.stratum_dict[ps_id])
-            rh1 = params.get('c_rh')
-            rh2 = params.get('d_rh')
-            i1 = self.rh_index_dict[rh1]
-            rh1_masked_by_ps = np.where(ps_array == ps_id, array[:, :, i1], np.nan)
-            if rh2 != 0:
-                i2 = self.rh_index_dict[rh2]
-                rh2_masked_by_ps = np.where(ps_array == ps_id, array[:, :, i2], np.nan)
-                agbd_ps = params.get('a') * pow((params.get('b') + params.get('c') * np.sqrt(rh1_masked_by_ps+100) +
-                                               params.get('d') * np.sqrt(rh2_masked_by_ps+100)), 2) /100
-            else:
-                agbd_ps = params.get('a') * pow(params.get('b') + params.get('c') * np.sqrt(rh1_masked_by_ps + 100), 2) / 100
-            agbd += np.where(np.isnan(agbd_ps), 0, agbd_ps)
-        agbd = np.where(agbd==0, -1, agbd)
+        agbd = np.zeros((array.shape[0], 256, 256)).astype(np.float32)
+        for i in range(array.shape[0]):
+            ps_array = array[i, :, :, 0]
+            ps_list = np.unique(ps_array).astype(int).tolist()
+            for ps_id in ps_list:
+                if ps_id == 241 or ps_id not in self.stratum_dict.keys():
+                    continue
+                params = self.config.get(self.stratum_dict[ps_id])
+                rh1 = params.get('c_rh')
+                rh2 = params.get('d_rh')
+                i1 = self.rh_index_dict[rh1]+1
+                rh1_masked_by_ps = np.where(ps_array == ps_id, array[i, :, :, i1], np.nan)
+                if rh2 != 0:
+                    i2 = self.rh_index_dict[rh2]+1
+                    rh2_masked_by_ps = np.where(ps_array == ps_id, array[i, :, :, i2], np.nan)
+                    agbd_ps = params.get('a') * pow((params.get('b') + params.get('c') * np.sqrt(rh1_masked_by_ps+100) +
+                                                   params.get('d') * np.sqrt(rh2_masked_by_ps+100)), 2) /100
+                else:
+                    agbd_ps = params.get('a') * pow(params.get('b') + params.get('c') * np.sqrt(rh1_masked_by_ps + 100), 2) / 100
+                agbd[i, :, :] += np.where(np.isnan(agbd_ps), 0, agbd_ps)
+            agbd[i, :, :] = np.where(agbd[i, :, :]==0, -1, agbd[i, :, :])
         return agbd
 
 if __name__=='__main__':
