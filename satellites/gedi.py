@@ -166,7 +166,7 @@ class gedi:
                 # plt.show()
                 index += 25
                 if index % 1000==0:
-                    break
+                    # break
                     print('{:.2f}% completed'.format(index*100/len(file_list)))
             dataset = np.concatenate(dataset_list, axis=0)
             np.save('dataset/proj4_train_'+region_id+'.npy', dataset)
