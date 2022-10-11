@@ -143,18 +143,19 @@ class gedi:
                 array, _ = self.read_tiff(file)
                 if array.shape[0]!=1280 or array.shape[1]!=1280 or array.shape[2]!=11:
                     continue
-                array = self.slice_into_small_tiles(array, 5)
-                output_array = np.zeros((array.shape[0], 256, 256, 10)).astype(np.float32)
-                for k in range(array.shape[0]):
-                    agbd = params_fetching.get_agbd(array[:, :, :, 4:])
-                    for i in range(3):
-                        output_array[:, :, :, i] = self.remove_outliers(array[:, :, :, i], 1)
-                        output_array[:, :, :, i] = np.nan_to_num(self.standardization(output_array[:, :, :, i]))
-                    output_array[:, :, :, 3:8] = array[:, :, :, 6:]
-                    output_array[:, :, :, 8] = agbd
-                    output_array[:, :, :, 9] = array[:, :, :, 5]
-                    if np.nanmean(output_array[:, :, :, 8])==-1:
-                        continue
+
+                output_array = np.zeros((array.shape[0], array.shape[1], 10)).astype(np.float32)
+                print(index)
+                agbd = params_fetching.get_agbd(array[:, :, 4:])
+                for i in range(3):
+                    output_array[:, :, i] = self.remove_outliers(array[:, :, i], 1)
+                    output_array[:, :, i] = np.nan_to_num(self.standardization(output_array[:, :, i]))
+                output_array[:, :, 3:8] = array[:, :, 6:]
+                output_array[:, :, 8] = agbd
+                output_array[:, :, 9] = array[:, :, 5]
+                if np.nanmean(output_array[:, :, 8])==-1:
+                    continue
+                output_array = self.slice_into_small_tiles(output_array, 20)
                 dataset_list.append(output_array)
                 # img = np.zeros((64,64,3))
                 # for i in range(3):
