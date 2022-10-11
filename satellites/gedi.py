@@ -149,7 +149,7 @@ class gedi:
                 agbd = params_fetching.get_agbd(array[:, :, 4:])
                 for i in range(3):
                     output_array[:, :, i] = self.remove_outliers(array[:, :, i], 1)
-                    output_array[:, :, i] = np.nan_to_num(self.standardization(output_array[:, :, i]))
+                    output_array[:, :, i] = np.nan_to_num(output_array[:, :, i])
                 output_array[:, :, 3:8] = array[:, :, 6:]
                 output_array[:, :, 8] = agbd
                 output_array[:, :, 9] = array[:, :, 5]
