@@ -174,13 +174,13 @@ if __name__=='__main__':
         checkpoint = ModelCheckpoint(
             'proj4_' + model_name + '_pretrained_' + backbone,
             monitor="val_loss", mode="min", save_best_only=True, verbose=1)
-    optimizer = tf.optimizers.SGD(learning_rate=learning_rate)
+    optimizer = tf.optimizers.Adam(learning_rate=learning_rate)
     iou_score=IOUScore(threshold=0.5)
     f1_score=FScore(beta=1, threshold=0.5)
     binary_crossentropy = BinaryCELoss()
     dice_loss = DiceLoss()
     bce_dice_loss = binary_crossentropy + dice_loss
-    model.compile(optimizer, loss=masked_mse, metrics= masked_mae)
+    model.compile(optimizer, loss=masked_mse, metrics= masked_mse)
 
     options = tf.data.Options()
     options.experimental_distribute.auto_shard_policy = tf.data.experimental.AutoShardPolicy.DATA
