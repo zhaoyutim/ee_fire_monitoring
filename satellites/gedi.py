@@ -16,8 +16,7 @@ with open("config/sample.yml", "r", encoding="utf8") as f:
     config = yaml.load(f, Loader=yaml.FullLoader)
 
 class gedi:
-    def download_to_gcloud(self, region_ids=['na'], dataset='train'):
-        year = 2019
+    def download_to_gcloud(self, region_ids=['na'], year = 2019):
         dataset = ee.ImageCollection('JAXA/ALOS/PALSAR/YEARLY/SAR') \
             .filter(ee.Filter.date(str(year), str(year + 1)))
         sarHh_log = dataset.select('HH').first().pow(2).log10().multiply(10).subtract(83)
@@ -45,10 +44,10 @@ class gedi:
                     .map(self.qualityMask)\
                     .select(['rh40', 'rh50', 'rh60', 'rh70', 'rh98']).mosaic()
                 output = ee.Image([composite, fnf, l4b, gedi])
-                dir = 'proj4_gedi_palsar' + '/' + region_id.upper() + '/' + 'class_' + class_id + '_' + str(i)
+                dir = 'proj4_gedi_palsar' + '/' + region_id.upper() + str(year) + '/' + 'year'+ str(year)+ 'class_' + class_id + '_' + str(i)
                 image_task = ee.batch.Export.image.toCloudStorage(
                     image=output.toFloat(),
-                    description='Image Export:' + 'GEDI_PALSAR_' + region_id.upper()+'_CLASS_'+class_id,
+                    description='Image Export:' + 'GEDI_PALSAR_' + region_id.upper() + str(year)+'_CLASS_'+class_id,
                     fileNamePrefix=dir,
                     bucket='ai4wildfire',
                     scale=25,
@@ -58,7 +57,7 @@ class gedi:
                 )
                 image_task.start()
                 print('Start with image task (id: {}).'.format(
-                    'GEDI-PALSAR Image Export:' + 'GEDI_SAMPLE_'+region_id.upper()+'_INDEX_'+str(i)+'_CLASS_'+class_id))
+                    'GEDI-PALSAR Image Export:' + 'GEDI_SAMPLE_'+region_id.upper() + str(year)+'_INDEX_'+str(i)+'_CLASS_'+class_id))
 
     def qualityMask(self, img):
         return img.updateMask(img.select('quality_flag').eq(1)).updateMask(img.select('degrade_flag').eq(0))
@@ -131,10 +130,10 @@ class gedi:
         return 255 * (x - np.nanmin(x)) / (np.nanmax(x) - np.nanmin(x))
 
 
-    def generate_dataset_proj4(self, region_ids = ['na', 'sa', 'af', 'eu', 'au', 'sas', 'nas']):
+    def generate_dataset_proj4(self, region_ids = ['na', 'sa', 'af', 'eu', 'au', 'sas', 'nas'], year=202):
         params_fetching = ParamsFetching()
         for region_id in region_ids:
-            path = os.path.join('proj4_gedi_palsar', region_id.upper(), '*.tif')
+            path = os.path.join('proj4_gedi_palsar', region_id.upper()+str(year), '*.tif')
             file_list = glob(path)
             dataset_list = []
             print('region_id:', region_id)
