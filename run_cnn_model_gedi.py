@@ -39,7 +39,7 @@ def get_dateset_gedi(batch_size):
     #     x_train = np.concatenate((x_train, np.load('/geoinfo_vol1/zhao2/proj4_dataset/proj4_train_af' + '.npy').astype(np.float32)), axis=0)
     #     x_train = np.concatenate((x_train, np.load('/geoinfo_vol1/zhao2/proj4_dataset/proj4_train_sas' + '.npy').astype(np.float32)), axis=0)
     #     x_train = np.concatenate((x_train, np.load('/geoinfo_vol1/zhao2/proj4_dataset/proj4_train_nas' + '.npy').astype(np.float32)), axis=0)
-    y_train = x_train[:,:,:,8:]
+    y_train = x_train[:,:,:,8]
     x_train, x_val, y_train, y_val = train_test_split(np.nan_to_num(x_train[:,:,:,:3]), y_train, test_size=0.2, random_state=0)
     def make_generator(inputs, labels):
         def _generator():
@@ -61,16 +61,8 @@ def get_dateset_gedi(batch_size):
 
     return train_dataset, val_dataset, steps_per_epoch, validation_steps
 
-def masked_mse_training(y_true, y_pred):
-    y_true = tf.reshape(y_true[:,:,:,1], (batch_size, -1))
-    y_pred = tf.reshape(y_pred, (batch_size, -1))
-    mask_true = K.cast(K.not_equal(y_true, -1), K.floatx())
-    masked_squared_error = K.square(mask_true * (y_true - y_pred))
-    masked_mse = K.mean(K.sum(masked_squared_error, axis=-1) / (K.sum(mask_true, axis=-1) + K.epsilon()))
-    return masked_mse
-
-def masked_mse_validation(y_true, y_pred):
-    y_true = tf.reshape(y_true[:,:,:,0], (batch_size, -1))
+def masked_mse(y_true, y_pred):
+    y_true = tf.reshape(y_true, (batch_size, -1))
     y_pred = tf.reshape(y_pred, (batch_size, -1))
     mask_true = K.cast(K.not_equal(y_true, -1), K.floatx())
     masked_squared_error = K.square(mask_true * (y_true - y_pred))
@@ -84,13 +76,10 @@ def masked_mae(y_true, y_pred):
     mae = K.abs(mask_true * (y_true - y_pred))
     masked_mae = K.mean(K.sum(mae, axis=-1) / (K.sum(mask_true, axis=-1) + K.epsilon()))
     return masked_mae
-# y_true = np.ones((16, 256, 256)).astype(np.float32)
-# y_pred = np.zeros((16, 256, 256)).astype(np.float32)
-# print(masked_mse(y_true, y_pred))
 
 def wandb_config(model_name, backbone, batch_size, learning_rate):
     wandb.login()
-    wandb.init(project='proj4_gedi_coarse_label', entity="zhaoyutim")
+    wandb.init(project='proj4_gedi', entity="zhaoyutim")
     wandb.run.name = 'model_name' + str(model_name) + 'backbone_'+ str(backbone)+ 'batchsize_'+str(batch_size)+'learning_rate_'+str(learning_rate)
     wandb.config = {
       "learning_rate": learning_rate,
@@ -135,8 +124,6 @@ if __name__=='__main__':
     # with strategy.scope():
     if model_name == 'fpn':
         input = tf.keras.Input(shape=(None, None, 3))
-        # x = resize_and_rescale(input)
-        # x = data_augmentation(x)
         conv1 = tf.keras.layers.Conv2D(3, 3, activation = 'linear', padding = 'same', kernel_initializer = 'he_normal')(input)
         basemodel = FPN(backbone, encoder_weights='imagenet', activation='sigmoid', classes=1)
         output = basemodel(conv1)
@@ -144,8 +131,6 @@ if __name__=='__main__':
 
     elif model_name == 'unet':
         input = tf.keras.Input(shape=(64, 64, 3))
-        # x = resize_and_rescale(input)
-        # x = data_augmentation(x)
         conv1 = tf.keras.layers.Conv2D(3, 3, activation = 'linear', padding = 'same', kernel_initializer = 'he_normal')(input)
         if backbone == 'None':
             basemodel = Unet(input_shape=(64, 64, 3), encoder_weights='imagenet', activation='linear')
@@ -156,8 +141,6 @@ if __name__=='__main__':
 
     elif model_name == 'linknet':
         input = tf.keras.Input(shape=(None, None, 3))
-        # x = resize_and_rescale(input)
-        # x = data_augmentation(x)
         conv1 = tf.keras.layers.Conv2D(3, 3, activation = 'linear', padding = 'same', kernel_initializer = 'he_normal')(input)
         basemodel = Linknet(backbone, encoder_weights='imagenet', activation='sigmoid', classes=1)
         output = basemodel(conv1)
@@ -165,8 +148,6 @@ if __name__=='__main__':
 
     elif model_name == 'pspnet':
         input = tf.keras.Input(shape=(None, None, 3))
-        # x = resize_and_rescale(input)
-        # x = data_augmentation(x)
         input_resize = tf.keras.layers.Resizing(384,384)(input)
         conv1 = tf.keras.layers.Conv2D(3, 3, activation = 'linear', padding = 'same', kernel_initializer = 'he_normal')(input_resize)
         basemodel = PSPNet(backbone, activation='sigmoid', classes=1)
@@ -188,7 +169,7 @@ if __name__=='__main__':
     binary_crossentropy = BinaryCELoss()
     dice_loss = DiceLoss()
     bce_dice_loss = binary_crossentropy + dice_loss
-    model.compile(optimizer, loss=masked_mse_training, metrics= masked_mse_validation)
+    model.compile(optimizer, loss=masked_mse, metrics= masked_mse)
 
     options = tf.data.Options()
     options.experimental_distribute.auto_shard_policy = tf.data.experimental.AutoShardPolicy.DATA
