@@ -66,7 +66,7 @@ def masked_mse_training(y_true, y_pred):
     y_pred = tf.reshape(y_pred, (batch_size, -1))
     mask_true = K.cast(K.not_equal(y_true, -1), K.floatx())
     masked_squared_error = K.square(mask_true * (y_true - y_pred))
-    masked_mse = K.mean(K.sum(masked_squared_error, axis=-1) / K.sum(mask_true, axis=-1))
+    masked_mse = K.mean(K.sum(masked_squared_error, axis=-1) / (K.sum(mask_true, axis=-1) + K.epsilon()))
     return masked_mse
 
 def masked_mse_validation(y_true, y_pred):
@@ -74,7 +74,7 @@ def masked_mse_validation(y_true, y_pred):
     y_pred = tf.reshape(y_pred, (batch_size, -1))
     mask_true = K.cast(K.not_equal(y_true, -1), K.floatx())
     masked_squared_error = K.square(mask_true * (y_true - y_pred))
-    masked_mse = K.mean(K.sum(masked_squared_error, axis=-1) / K.sum(mask_true, axis=-1))
+    masked_mse = K.mean(K.sum(masked_squared_error, axis=-1) / (K.sum(mask_true, axis=-1) + K.epsilon()))
     return masked_mse
 
 def masked_mae(y_true, y_pred):
@@ -82,7 +82,7 @@ def masked_mae(y_true, y_pred):
     y_pred = tf.reshape(y_pred, (batch_size, -1))
     mask_true = K.cast(K.not_equal(y_true, -1), K.floatx())
     mae = K.abs(mask_true * (y_true - y_pred))
-    masked_mae = K.mean(K.sum(mae, axis=-1) / K.sum(mask_true, axis=-1))
+    masked_mae = K.mean(K.sum(mae, axis=-1) / (K.sum(mask_true, axis=-1) + K.epsilon()))
     return masked_mae
 # y_true = np.ones((16, 256, 256)).astype(np.float32)
 # y_pred = np.zeros((16, 256, 256)).astype(np.float32)

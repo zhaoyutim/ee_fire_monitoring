@@ -152,7 +152,7 @@ class gedi:
                     output_array[:, :, i] = np.nan_to_num(output_array[:, :, i])
                 output_array[:, :, 3:8] = array[:, :, 6:]
                 output_array[:, :, 8] = agbd
-                output_array[:, :, 9] = array[:, :, 5]
+                output_array[:, :, 9] = np.nan_to_num(array[:, :, 5]/100, nan=-1)
                 if np.nanmean(output_array[:, :, 8])==-1:
                     continue
                 output_array = self.slice_into_small_tiles(output_array, 20)
@@ -166,7 +166,7 @@ class gedi:
                 # plt.show()
                 index += 25
                 if index % 1000==0:
-                    # break
+                    break
                     print('{:.2f}% completed'.format(index*100/len(file_list)))
             dataset = np.concatenate(dataset_list, axis=0)
             np.save('dataset/proj4_train_'+region_id+'.npy', dataset)
