@@ -2,13 +2,15 @@ import datetime
 import os
 import time
 from glob import glob
-
+import tensorflow as tf
 import numpy as np
 import rasterio
 import yaml
 import ee
 from google.cloud import storage
 from matplotlib import pyplot as plt
+from run_cnn_model_gedi import create_model
+
 
 from ParamsFetching import ParamsFetching
 
@@ -17,13 +19,13 @@ with open("config/sample.yml", "r", encoding="utf8") as f:
 
 class gedi:
     def download_to_gcloud(self, region_ids=['na'], year = 2019):
-        dataset = ee.ImageCollection('JAXA/ALOS/PALSAR/YEARLY/SAR') \
-            .filter(ee.Filter.date(str(year), str(year + 1)))
+        dataset = ee.ImageCollection('JAXA/ALOS/PALSAR/YEARLY/SAR_EPOCH') \
+            .filter(ee.Filter.date(str(year)+'-01-01', str(year + 1)+'-01-01'))
         sarHh_log = dataset.select('HH').first().pow(2).log10().multiply(10).subtract(83)
         sarHv_log = dataset.select('HV').first().pow(2).log10().multiply(10).subtract(83)
         sarhvhh = sarHv_log.subtract(sarHh_log).rename('HV-HH')
         composite = ee.Image([sarHh_log, sarHv_log, sarhvhh])
-        fnf = ee.ImageCollection('JAXA/ALOS/PALSAR/YEARLY/FNF').filter(ee.Filter.date(str(year), str(year + 1)))
+        fnf = ee.ImageCollection('JAXA/ALOS/PALSAR/YEARLY/FNF').filterDate('2017-01-01', '2017-12-31')
         fnf =  fnf.select('fnf').mosaic()
         l4b = ee.Image('LARSE/GEDI/GEDI04_B_002').select(['PS', 'MU'])
         for region_id in region_ids:
@@ -33,12 +35,12 @@ class gedi:
             for i in range(size):
                 roi = ee.Feature(roi_col.get(i).getInfo())
                 class_id = roi.args['metadata'].get('class')
-                date_pre = dataset.select('date').median().clip(roi).reduceRegion(
+                date_pre = dataset.select('epoch').median().clip(roi).reduceRegion(
                     reducer=ee.Reducer.max(),
                     geometry=roi.geometry(),
                     scale=100,
-                    crs='EPSG:4326').getNumber('date')
-                date_pre = ee.Date(ee.Date.fromYMD(2014, 5, 24).advance(date_pre, 'day'))
+                    crs='EPSG:4326').getNumber('epoch')
+                date_pre = ee.Date(ee.Date.fromYMD(1970,1,1).advance(ee.Number(date_pre).divide(1000), 'second'))
                 gedi = ee.ImageCollection('LARSE/GEDI/GEDI02_A_002_MONTHLY')\
                     .filterDate(date_pre.difference(15, "day"), date_pre.advance(15, "day"))\
                     .map(self.qualityMask)\
@@ -130,10 +132,13 @@ class gedi:
         return 255 * (x - np.nanmin(x)) / (np.nanmax(x) - np.nanmin(x))
 
 
-    def generate_dataset_proj4(self, region_ids = ['na', 'sa', 'af', 'eu', 'au', 'sas', 'nas'], year=202):
+    def generate_dataset_proj4(self, region_ids = ['na', 'sa', 'af', 'eu', 'au', 'sas', 'nas'], year=2020):
         params_fetching = ParamsFetching()
         for region_id in region_ids:
-            path = os.path.join('proj4_gedi_palsar', region_id.upper()+str(year), '*.tif')
+            if year == 2019:
+                path = os.path.join('proj4_gedi_palsar', region_id.upper(), '*.tif')
+            else:
+                path = os.path.join('proj4_gedi_palsar', region_id.upper()+str(year), '*.tif')
             file_list = glob(path)
             dataset_list = []
             print('region_id:', region_id)
@@ -143,45 +148,43 @@ class gedi:
                 if array.shape[0]!=1280 or array.shape[1]!=1280 or array.shape[2]!=11:
                     continue
 
-                output_array = np.zeros((array.shape[0], array.shape[1], 10)).astype(np.float32)
+                output_array = np.zeros((array.shape[0], array.shape[1], 9)).astype(np.float32)
                 print(index)
                 agbd = params_fetching.get_agbd(array[:, :, 4:])
                 for i in range(3):
                     output_array[:, :, i] = self.remove_outliers(array[:, :, i], 1)
                     output_array[:, :, i] = np.nan_to_num(output_array[:, :, i])
                 output_array[:, :, 3:8] = array[:, :, 6:]
-                output_array[:, :, 8] = agbd
-                output_array[:, :, 9] = np.nan_to_num(array[:, :, 5]/100, nan=-1)
+                output_array[:, :, 8] = np.where(agbd!=-1, np.nan_to_num(array[:, :, 5]/100, nan=-1), -1)
+                # output_array[:, :, 9] = np.nan_to_num(array[:, :, 5]/100, nan=-1)
                 if np.nanmean(output_array[:, :, 8])==-1:
                     continue
                 output_array = self.slice_into_small_tiles(output_array, 20)
                 dataset_list.append(output_array)
-                # img = np.zeros((64,64,3))
-                # for i in range(3):
-                #     img[:,:,i] = (output_array[0,:,:,i]-output_array[0,:,:,i].min())/(output_array[0,:,:,i].max()-output_array[0,:,:,i].min())
-                # plt.imshow(img)
-                # plt.show()
-                # plt.imshow(output_array[0,:,:,8])
-                # plt.show()
                 index += 25
                 if index % 1000==0:
-                    break
-                    print('{:.2f}% completed'.format(index*100/len(file_list)))
-            dataset = np.concatenate(dataset_list, axis=0)
-            np.save('dataset/proj4_train_'+region_id+'.npy', dataset)
+                    # break
+                    print('{:.2f}% completed'.format(index*100/len(file_list)/25))
 
-    def evaluate_and_plot(self, test_array_path='proj4_gedi_palsar/NA/class_DBT_NA_00000000000-0000000000.tif'):
-        params_fetching = ParamsFetching()
-        fnf=2
-        test_array, _ = self.read_tiff(test_array_path)
-        # for i in range(3):
-        #     test_array[:, :, i] = self.remove_outliers(test_array[:, :, i], 1)
-        #     test_array[:, :, i] = np.nan_to_num(self.normalization(test_array[:, :, i]))
-        test_array = self.slice_into_small_tiles(test_array, 5)
-        agbd = params_fetching.get_agbd(test_array[:, :, :, 4:])
-        x_scatter = agbd[np.logical_and(agbd!=-1, np.logical_or(test_array[:, :, :, 3]==1, test_array[:, :, :, 3]==2))]
-        y_scatter = test_array[:,:,:,2][np.logical_and(agbd!=-1, np.logical_or(test_array[:, :, :, 3]==1, test_array[:, :, :, 3]==2))]
-        # plt.axis('off')
+            dataset = np.concatenate(dataset_list, axis=0)
+            if year != 2019:
+                np.save('dataset/proj4_train_'+region_id+str(year)+'.npy', dataset)
+            else:
+                np.save('dataset/proj4_train_' + region_id + '.npy', dataset)
+
+    def evaluate_and_plot(self, test_array_path='dataset/proj4_train_na2020.npy', model_path='model/proj4_unet_pretrained_resnet18/'):
+        import segmentation_models as sm
+        sm.set_framework('tf.keras')
+        test_array= np.load(test_array_path)
+        model = create_model('unet', 'resnet18', 0.0003)
+        model.load_weights(model_path)
+        agbd_pred = model.predict(test_array[:,:,:,:3])
+        agbd = test_array[:,:,:,[8]]
+        x_scatter = agbd[
+            np.logical_and(np.squeeze(agbd) != -1, np.logical_or(test_array[:, :, :, 3] == 1, test_array[:, :, :, 3] == 2))]
+        y_scatter = agbd_pred[
+            np.logical_and(np.squeeze(agbd) != -1, np.logical_or(test_array[:, :, :, 3] == 1, test_array[:, :, :, 3] == 2))]
+
         plt.scatter(x=x_scatter, y=y_scatter)
         plt.show()
 

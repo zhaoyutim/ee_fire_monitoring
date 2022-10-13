@@ -39,9 +39,9 @@ class ParamsFetching:
                 i2 = self.rh_index_dict[rh2]+1
                 rh2_masked_by_ps = np.where(ps_array == ps_id, array[:, :, i2], np.nan)
                 agbd_ps = params.get('a') * pow((params.get('b') + params.get('c') * np.sqrt(rh1_masked_by_ps+100) +
-                                               params.get('d') * np.sqrt(rh2_masked_by_ps+100)), 2) /100
+                                               params.get('d') * np.sqrt(rh2_masked_by_ps+100)), 2)
             else:
-                agbd_ps = params.get('a') * pow(params.get('b') + params.get('c') * np.sqrt(rh1_masked_by_ps + 100), 2) / 100
+                agbd_ps = params.get('a') * pow(params.get('b') + params.get('c') * np.sqrt(rh1_masked_by_ps + 100), 2)
             agbd += np.where(np.isnan(agbd_ps), 0, agbd_ps)
             agbd = np.where(agbd==0, -1, agbd)
         return agbd
@@ -50,3 +50,18 @@ if __name__=='__main__':
     params_fetching = ParamsFetching()
     params=params_fetching.get_agbd(np.ones((256,256,6)))
     print(params)
+    # import tensorflow as tf
+    # import tensorflow.python.keras.backend as K
+    #
+    #
+    # def masked_mse(y_true, y_pred):
+    #     y_true = tf.reshape(y_true, -1)
+    #     y_pred = tf.reshape(y_pred, -1)
+    #     mask_true = K.cast(K.not_equal(y_true, -1), K.floatx())
+    #     masked_squared_error = K.square(mask_true * (y_true - y_pred))
+    #     masked_mse = K.mean(K.sum(masked_squared_error, axis=-1) / (K.sum(mask_true, axis=-1) + K.epsilon()))
+    #     return masked_mse
+    #
+    #
+    # print(masked_mse(array[:, :, 1] / 100, agbd))
+
