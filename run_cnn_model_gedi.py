@@ -124,7 +124,7 @@ def create_model(model_name, backbone, learning_rate):
         output_resize = tf.keras.layers.Resizing(256,256)(output)
         model = tf.keras.Model(input, output_resize, name=model_name)
     model.summary()
-    optimizer = tf.optimizers.Adam(learning_rate=learning_rate)
+    optimizer = tf.optimizers.SGD(learning_rate=learning_rate)
     model.compile(optimizer, loss=masked_mse, metrics= masked_mse)
     return model
 
