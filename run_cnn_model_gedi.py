@@ -94,7 +94,7 @@ def create_model(model_name, backbone, learning_rate):
     if model_name == 'fpn':
         input = tf.keras.Input(shape=(None, None, 3))
         conv1 = tf.keras.layers.Conv2D(3, 3, activation = 'linear', padding = 'same', kernel_initializer = 'he_normal')(input)
-        basemodel = FPN(backbone, encoder_weights='imagenet', activation='sigmoid', classes=1)
+        basemodel = FPN(backbone, encoder_weights='imagenet', activation='relu', classes=1)
         output = basemodel(conv1)
         model = tf.keras.Model(input, output, name=model_name)
 
@@ -102,16 +102,16 @@ def create_model(model_name, backbone, learning_rate):
         input = tf.keras.Input(shape=(64, 64, 3))
         conv1 = tf.keras.layers.Conv2D(3, 3, activation = 'linear', padding = 'same', kernel_initializer = 'he_normal')(input)
         if backbone == 'None':
-            basemodel = Unet(input_shape=(64, 64, 3), encoder_weights='imagenet', activation='linear')
+            basemodel = Unet(input_shape=(64, 64, 3), encoder_weights='imagenet', activation='relu')
         else:
-            basemodel = Unet(backbone, input_shape=(64, 64, 3), encoder_weights='imagenet', activation='linear')
+            basemodel = Unet(backbone, input_shape=(64, 64, 3), encoder_weights='imagenet', activation='relu')
         output = basemodel(conv1)
         model = tf.keras.Model(input, output, name=model_name)
 
     elif model_name == 'linknet':
         input = tf.keras.Input(shape=(None, None, 3))
         conv1 = tf.keras.layers.Conv2D(3, 3, activation = 'linear', padding = 'same', kernel_initializer = 'he_normal')(input)
-        basemodel = Linknet(backbone, encoder_weights='imagenet', activation='sigmoid', classes=1)
+        basemodel = Linknet(backbone, encoder_weights='imagenet', activation='relu', classes=1)
         output = basemodel(conv1)
         model = tf.keras.Model(input, output, name=model_name)
 
@@ -119,7 +119,7 @@ def create_model(model_name, backbone, learning_rate):
         input = tf.keras.Input(shape=(None, None, 3))
         input_resize = tf.keras.layers.Resizing(384,384)(input)
         conv1 = tf.keras.layers.Conv2D(3, 3, activation = 'linear', padding = 'same', kernel_initializer = 'he_normal')(input_resize)
-        basemodel = PSPNet(backbone, activation='sigmoid', classes=1)
+        basemodel = PSPNet(backbone, activation='relu', classes=1)
         output = basemodel(conv1)
         output_resize = tf.keras.layers.Resizing(256,256)(output)
         model = tf.keras.Model(input, output_resize, name=model_name)
