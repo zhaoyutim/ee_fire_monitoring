@@ -145,46 +145,33 @@ if __name__=='__main__':
     set_global_seed()
 
     model = create_model(model_name, backbone, learning_rate)
-    if mode == 'Train':
-        MAX_EPOCHS = 100
-        options = tf.data.Options()
-        options.experimental_distribute.auto_shard_policy = tf.data.experimental.AutoShardPolicy.DATA
-        train_dataset, val_dataset, steps_per_epoch, validation_steps = get_dateset_gedi(batch_size)
-        wandb_config(model_name, backbone, batch_size, learning_rate)
-        train_dataset = train_dataset.with_options(options)
-        val_dataset = val_dataset.with_options(options)
+    MAX_EPOCHS = 100
+    options = tf.data.Options()
+    options.experimental_distribute.auto_shard_policy = tf.data.experimental.AutoShardPolicy.DATA
+    train_dataset, val_dataset, steps_per_epoch, validation_steps = get_dateset_gedi(batch_size)
+    wandb_config(model_name, backbone, batch_size, learning_rate)
+    train_dataset = train_dataset.with_options(options)
+    val_dataset = val_dataset.with_options(options)
 
-        print('training in progress ')
-        if platform.system() != 'Darwin':
-            checkpoint = ModelCheckpoint(
-                '/geoinfo_vol1/zhao2/proj4_model/proj4_' + model_name + '_pretrained_' + backbone,
-                monitor="val_loss", mode="min", save_best_only=True, verbose=1)
-        else:
-            checkpoint = ModelCheckpoint(
-                'proj4_' + model_name + '_pretrained_' + backbone,
-                monitor="val_loss", mode="min", save_best_only=True, verbose=1)
-        history = model.fit(
-            train_dataset,
-            batch_size=batch_size,
-            steps_per_epoch=steps_per_epoch,
-            validation_data=val_dataset,
-            validation_steps=validation_steps,
-            epochs=MAX_EPOCHS,
-            callbacks=[WandbCallback(), checkpoint],
-        )
-        if platform.system() != 'Darwin':
-            model.save('/geoinfo_vol1/zhao2/proj4_model/proj4_'+model_name+'_pretrained_'+backbone)
-        else:
-            model.save('proj4_' + model_name + '_pretrained_' + backbone)
+    print('training in progress ')
+    if platform.system() != 'Darwin':
+        checkpoint = ModelCheckpoint(
+            '/geoinfo_vol1/zhao2/proj4_model/proj4_' + model_name + '_pretrained_' + backbone,
+            monitor="val_loss", mode="min", save_best_only=True, verbose=1)
     else:
-        test_array_path = 'dataset/proj4_train_na2020.npy'
-        model_path = 'model/proj4_unet_pretrained_resnet18'
-        test_array= np.load(test_array_path)
-        model = create_model('unet', 'resnet18', 0.0003)
-        model.load_weights(model_path)
-        agbd_pred = model.predict(test_array[:,:,:,:3])
-        agbd = test_array[:,:,:,:8]
-        x_scatter = agbd[agbd!=-1]
-        y_scatter = agbd_pred[agbd!=-1]
-        plt.scatter(x=x_scatter, y=y_scatter)
-        plt.show()
+        checkpoint = ModelCheckpoint(
+            'proj4_' + model_name + '_pretrained_' + backbone,
+            monitor="val_loss", mode="min", save_best_only=True, verbose=1)
+    history = model.fit(
+        train_dataset,
+        batch_size=batch_size,
+        steps_per_epoch=steps_per_epoch,
+        validation_data=val_dataset,
+        validation_steps=validation_steps,
+        epochs=MAX_EPOCHS,
+        callbacks=[WandbCallback(), checkpoint],
+    )
+    if platform.system() != 'Darwin':
+        model.save('/geoinfo_vol1/zhao2/proj4_model/proj4_'+model_name+'_pretrained_'+backbone)
+    else:
+        model.save('proj4_' + model_name + '_pretrained_' + backbone)
