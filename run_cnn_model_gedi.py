@@ -1,19 +1,18 @@
 import argparse
-import random
 import platform
+import random
+
 import numpy as np
 import segmentation_models as sm
 import tensorflow as tf
 import tensorflow.python.keras.backend as K
-from matplotlib import pyplot as plt
-
-import wandb
 from segmentation_models import Unet, Linknet, PSPNet, FPN
-from segmentation_models.losses import DiceLoss, BinaryCELoss
-from segmentation_models.metrics import IOUScore, FScore
 from sklearn.model_selection import train_test_split
 from tensorflow.python.keras.callbacks import ModelCheckpoint
 from wandb.integration.keras import WandbCallback
+
+import wandb
+
 
 def set_global_seed(seed=21):
     # Tensorflow
@@ -32,17 +31,17 @@ def set_global_seed(seed=21):
 
 def get_dateset_gedi(batch_size):
     if platform.system() == 'Darwin':
-        x_train = np.load('dataset/proj4_train_na'+'.npy').astype(np.float32)
+        x_train = np.load('dataset/proj4_train_na2020'+'.npy').astype(np.float32)
     else:
-        x_train = np.load('/geoinfo_vol1/zhao2/proj4_dataset/proj4_train_na' + '.npy').astype(np.float32)
+        x_train = np.load('/geoinfo_vol1/zhao2/proj4_dataset/proj4_train_na2020' + '.npy').astype(np.float32)
         # x_train = np.concatenate((x_train, np.load('/geoinfo_vol1/zhao2/proj4_dataset/proj4_train_sa' + '.npy').astype(np.float32)), axis=0)
     #     x_train = np.concatenate((x_train, np.load('/geoinfo_vol1/zhao2/proj4_dataset/proj4_train_eu' + '.npy').astype(np.float32)), axis=0)
     #     x_train = np.concatenate((x_train, np.load('/geoinfo_vol1/zhao2/proj4_dataset/proj4_train_au' + '.npy').astype(np.float32)), axis=0)
     #     x_train = np.concatenate((x_train, np.load('/geoinfo_vol1/zhao2/proj4_dataset/proj4_train_af' + '.npy').astype(np.float32)), axis=0)
     #     x_train = np.concatenate((x_train, np.load('/geoinfo_vol1/zhao2/proj4_dataset/proj4_train_sas' + '.npy').astype(np.float32)), axis=0)
     #     x_train = np.concatenate((x_train, np.load('/geoinfo_vol1/zhao2/proj4_dataset/proj4_train_nas' + '.npy').astype(np.float32)), axis=0)
-    y_train = x_train[:,:,:,8]
-    x_train, x_val, y_train, y_val = train_test_split(np.nan_to_num(x_train[:,:,:,:3]), y_train, test_size=0.2, random_state=0)
+    y_train = x_train[:,:,:,9]
+    x_train, x_val, y_train, y_val = train_test_split(np.nan_to_num(x_train[:,:,:,:4]), y_train, test_size=0.2, random_state=0)
     def make_generator(inputs, labels):
         def _generator():
             for input, label in zip(inputs, labels):
@@ -99,12 +98,12 @@ def create_model(model_name, backbone, learning_rate):
         model = tf.keras.Model(input, output, name=model_name)
 
     elif model_name == 'unet':
-        input = tf.keras.Input(shape=(64, 64, 3))
+        input = tf.keras.Input(shape=(64, 64, 4))
         conv1 = tf.keras.layers.Conv2D(3, 3, activation = 'linear', padding = 'same', kernel_initializer = 'he_normal')(input)
         if backbone == 'None':
-            basemodel = Unet(input_shape=(64, 64, 3), encoder_weights='imagenet', activation='relu')
+            basemodel = Unet(input_shape=(64, 64, 4), encoder_weights='imagenet', activation='relu')
         else:
-            basemodel = Unet(backbone, input_shape=(64, 64, 3), encoder_weights='imagenet', activation='relu')
+            basemodel = Unet(backbone, input_shape=(64, 64, 4), encoder_weights='imagenet', activation='relu')
         output = basemodel(conv1)
         model = tf.keras.Model(input, output, name=model_name)
 
@@ -129,6 +128,7 @@ def create_model(model_name, backbone, learning_rate):
     return model
 
 if __name__=='__main__':
+    sm.set_framework('tf.keras')
     parser = argparse.ArgumentParser(description='Process some integers.')
     parser.add_argument('-m', type=str, help='Model to be executed')
     parser.add_argument('-b', type=int, help='batch size')
@@ -138,12 +138,10 @@ if __name__=='__main__':
     args = parser.parse_args()
     model_name = args.m
     backbone = args.bb
-    sm.set_framework('tf.keras')
     batch_size=args.b
-    mode = 'Test'
     learning_rate = args.lr
-    set_global_seed()
 
+    set_global_seed()
     model = create_model(model_name, backbone, learning_rate)
     MAX_EPOCHS = 100
     options = tf.data.Options()

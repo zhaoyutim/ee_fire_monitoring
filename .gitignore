@@ -18,3 +18,5 @@ wandb
 .idea
 proj4_gedi_palsar
 proj4_gedi_palsar1
+recon
+dataset_pred
