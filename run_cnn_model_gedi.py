@@ -101,9 +101,9 @@ def create_model(model_name, backbone, learning_rate):
         input = tf.keras.Input(shape=(64, 64, 4))
         conv1 = tf.keras.layers.Conv2D(3, 3, activation = 'linear', padding = 'same', kernel_initializer = 'he_normal')(input)
         if backbone == 'None':
-            basemodel = Unet(input_shape=(64, 64, 4), encoder_weights='imagenet', activation='relu')
+            basemodel = Unet(input_shape=(64, 64, 3), encoder_weights='imagenet', activation='relu')
         else:
-            basemodel = Unet(backbone, input_shape=(64, 64, 4), encoder_weights='imagenet', activation='relu')
+            basemodel = Unet(backbone, input_shape=(64, 64, 3), encoder_weights='imagenet', activation='relu')
         output = basemodel(conv1)
         model = tf.keras.Model(input, output, name=model_name)
 
