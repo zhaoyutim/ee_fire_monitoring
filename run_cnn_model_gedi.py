@@ -29,7 +29,7 @@ def set_global_seed(seed=21):
     # Python
     random.seed(seed)
 
-def get_dateset_gedi(batch_size):
+def get_dateset_gedi(batch_size, nchannels):
     if platform.system() == 'Darwin':
         x_train = np.load('dataset/proj4_train_na2020'+'.npy').astype(np.float32)
     else:
@@ -41,7 +41,7 @@ def get_dateset_gedi(batch_size):
     #     x_train = np.concatenate((x_train, np.load('/geoinfo_vol1/zhao2/proj4_dataset/proj4_train_sas' + '.npy').astype(np.float32)), axis=0)
     #     x_train = np.concatenate((x_train, np.load('/geoinfo_vol1/zhao2/proj4_dataset/proj4_train_nas' + '.npy').astype(np.float32)), axis=0)
     y_train = x_train[:,:,:,9]
-    x_train, x_val, y_train, y_val = train_test_split(np.nan_to_num(x_train[:,:,:,:4]), y_train, test_size=0.2, random_state=0)
+    x_train, x_val, y_train, y_val = train_test_split(np.nan_to_num(x_train[:,:,:,:nchannels]), y_train, test_size=0.2, random_state=0)
     def make_generator(inputs, labels):
         def _generator():
             for input, label in zip(inputs, labels):
@@ -78,10 +78,10 @@ def masked_mae(y_true, y_pred):
     masked_mae = K.mean(K.sum(mae, axis=-1) / (K.sum(mask_true, axis=-1) + K.epsilon()))
     return masked_mae
 
-def wandb_config(model_name, backbone, batch_size, learning_rate):
+def wandb_config(model_name, backbone, batch_size, learning_rate, nchannels):
     wandb.login()
     wandb.init(project='proj4_gedi', entity="zhaoyutim")
-    wandb.run.name = 'model_name' + str(model_name) + 'backbone_'+ str(backbone)+ 'batchsize_'+str(batch_size)+'learning_rate_'+str(learning_rate)
+    wandb.run.name = 'model_name' + str(model_name) + 'backbone_'+ str(backbone)+ 'batchsize_'+str(batch_size)+'learning_rate_'+str(learning_rate)+'_nchannels_'+str(nchannels)
     wandb.config = {
       "learning_rate": learning_rate,
       "epochs": MAX_EPOCHS,
@@ -98,7 +98,7 @@ def create_model(model_name, backbone, learning_rate):
         model = tf.keras.Model(input, output, name=model_name)
 
     elif model_name == 'unet':
-        input = tf.keras.Input(shape=(64, 64, 4))
+        input = tf.keras.Input(shape=(64, 64, nchannels))
         conv1 = tf.keras.layers.Conv2D(3, 3, activation = 'linear', padding = 'same', kernel_initializer = 'he_normal')(input)
         if backbone == 'None':
             basemodel = Unet(input_shape=(64, 64, 3), encoder_weights='imagenet', activation='relu')
@@ -140,14 +140,14 @@ if __name__=='__main__':
     backbone = args.bb
     batch_size=args.b
     learning_rate = args.lr
-
+    nchannels = args.nc
     set_global_seed()
     model = create_model(model_name, backbone, learning_rate)
     MAX_EPOCHS = 100
     options = tf.data.Options()
     options.experimental_distribute.auto_shard_policy = tf.data.experimental.AutoShardPolicy.DATA
-    train_dataset, val_dataset, steps_per_epoch, validation_steps = get_dateset_gedi(batch_size)
-    wandb_config(model_name, backbone, batch_size, learning_rate)
+    train_dataset, val_dataset, steps_per_epoch, validation_steps = get_dateset_gedi(batch_size, nchannels)
+    wandb_config(model_name, backbone, batch_size, learning_rate, nchannels)
     train_dataset = train_dataset.with_options(options)
     val_dataset = val_dataset.with_options(options)
 
