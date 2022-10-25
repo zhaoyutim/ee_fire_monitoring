@@ -142,7 +142,7 @@ if __name__=='__main__':
     learning_rate = args.lr
     nchannels = args.nc
     set_global_seed()
-    model = create_model(model_name, backbone, learning_rate)
+    model = create_model(model_name, backbone, learning_rate, nchannels)
     MAX_EPOCHS = 100
     options = tf.data.Options()
     options.experimental_distribute.auto_shard_policy = tf.data.experimental.AutoShardPolicy.DATA
