@@ -89,7 +89,7 @@ def wandb_config(model_name, backbone, batch_size, learning_rate, nchannels):
       "model_name":model_name,
       "backbone": backbone
     }
-def create_model(model_name, backbone, learning_rate):
+def create_model(model_name, backbone, learning_rate, nchannels):
     if model_name == 'fpn':
         input = tf.keras.Input(shape=(None, None, 3))
         conv1 = tf.keras.layers.Conv2D(3, 3, activation = 'linear', padding = 'same', kernel_initializer = 'he_normal')(input)
@@ -170,6 +170,6 @@ if __name__=='__main__':
         callbacks=[WandbCallback(), checkpoint],
     )
     if platform.system() != 'Darwin':
-        model.save('/geoinfo_vol1/zhao2/proj4_model/proj4_'+model_name+'_pretrained_'+backbone)
+        model.save('/geoinfo_vol1/zhao2/proj4_model/proj4_'+model_name+'_pretrained_'+backbone+'_nchannels_'+nchannels)
     else:
-        model.save('proj4_' + model_name + '_pretrained_' + backbone)
+        model.save('proj4_' + model_name + '_pretrained_' + backbone+'_nchannels_'+nchannels)

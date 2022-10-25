@@ -212,21 +212,21 @@ class gedi:
             else:
                 np.save('dataset/proj4_train_' + region_id + '.npy', dataset)
 
-    def evaluate_and_plot(self, test_array_path='dataset/proj4_train_na2020.npy', model_path='model/proj4_unet_pretrained_resnet18/'):
+    def evaluate_and_plot(self, test_array_path='dataset/proj4_train_na2020.npy', model_path='model/proj4_unet_pretrained_resnet18/', nchannels=9):
         import segmentation_models as sm
         region_id='custom_region'
         sm.set_framework('tf.keras')
         test_array= np.load(test_array_path)
         if not os.path.exists('dataset_pred/'+region_id+'agbd_resnet18_unet.npy'):
-            model = create_model('unet', 'resnet18', 0.0003)
+            model = create_model('unet', 'resnet18', 0.0003, nchannels=nchannels)
             model.load_weights(model_path)
-            agbd_pred = model.predict(test_array[:, :, :, :3])
+            agbd_pred = model.predict(test_array[:, :, :, :nchannels])
             np.save('dataset_pred/'+region_id+'agbd_resnet18_unet.npy', agbd_pred)
         else:
             agbd_pred = np.load('dataset_pred/'+region_id+'agbd_resnet18_unet.npy')
-        agbd = test_array[:,:,:,[8]]
-        x_scatter = agbd[np.logical_and(np.squeeze(agbd) != -1, test_array[:, :, :, 9] == 10)]
-        y_scatter = agbd_pred[np.logical_and(np.squeeze(agbd) != -1, test_array[:, :, :, 9] == 10)]
+        agbd = test_array[:,:,:,[9]]
+        x_scatter = agbd[np.squeeze(agbd) != -1]
+        y_scatter = agbd_pred[np.squeeze(agbd) != -1]
         from scipy import stats
         slope, intercept, r_value, p_value, std_err = stats.linregress(x_scatter.flatten(), y_scatter.flatten())
         plt.title('Correlation between predicted AGBD and GEDI AGBD. r-squared: {0:.2f}'.format(r_value ** 2))
