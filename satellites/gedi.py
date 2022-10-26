@@ -193,7 +193,7 @@ class gedi:
                 for i in range(3):
                     output_array[:, :, i] = self.remove_outliers(array[:, :, i], 1)
                     output_array[:, :, i] = np.nan_to_num(output_array[:, :, i])
-                output_array[:, :, 4:9] = array[:, :, 6:]
+                output_array[:, :, 4:9] = np.nan_to_num(array[:, :, 6:])
                 output_array[:, :, 9] = np.where(agbd!=-1, np.nan_to_num(array[:, :, 5]/100, nan=-1), -1)
                 # output_array[:, :, 8] = agbd
                 output_array[:, :, 3] = array[:, :, 3]

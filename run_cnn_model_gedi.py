@@ -170,6 +170,6 @@ if __name__=='__main__':
         callbacks=[WandbCallback(), checkpoint],
     )
     if platform.system() != 'Darwin':
-        model.save('/geoinfo_vol1/zhao2/proj4_model/proj4_'+model_name+'_pretrained_'+backbone+'_nchannels_'+nchannels)
+        model.save('/geoinfo_vol1/zhao2/proj4_model/proj4_'+model_name+'_pretrained_'+backbone+'_nchannels_'+str(nchannels))
     else:
-        model.save('proj4_' + model_name + '_pretrained_' + backbone+'_nchannels_'+nchannels)
+        model.save('proj4_' + model_name + '_pretrained_' + backbone+'_nchannels_'+str(nchannels))
