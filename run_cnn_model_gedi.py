@@ -146,7 +146,9 @@ if __name__=='__main__':
     learning_rate = args.lr
     nchannels = args.nc
     set_global_seed()
-    model = create_model(model_name, backbone, learning_rate, nchannels)
+    mirrored_strategy = tf.distribute.MirroredStrategy()
+    with mirrored_strategy.scope():
+        model = create_model(model_name, backbone, learning_rate, nchannels)
     MAX_EPOCHS = 100
     options = tf.data.Options()
     options.experimental_distribute.auto_shard_policy = tf.data.experimental.AutoShardPolicy.DATA
@@ -154,7 +156,6 @@ if __name__=='__main__':
     wandb_config(model_name, backbone, batch_size, learning_rate, nchannels)
     train_dataset = train_dataset.with_options(options)
     val_dataset = val_dataset.with_options(options)
-
     print('training in progress ')
     if platform.system() != 'Darwin':
         checkpoint = ModelCheckpoint(
