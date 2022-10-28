@@ -16,10 +16,10 @@ if __name__=='__main__':
     gedi = gedi()
     custom_regions=None
     # custom_regions=[-121, 40, -123, 38] # xmin, ymin, xmax, ymax
-    # gedi.download_to_gcloud(region_ids=['na'], year=2020)
-    # gedi.download_to_local_proj4('2022-10-23')
-    gedi.generate_dataset_proj4(['na'], year=2020, custom_region=custom_regions)
-    # gedi.evaluate_and_plot('dataset/proj4_train_custom_region2020.npy')
-    # gedi.inference()
+    # gedi.download_to_gcloud(region_ids=['na'], mode='test', year=2019, custom_region=custom_regions)
+    # gedi.download_to_local_proj4('2022-10-26')
+    # gedi.generate_dataset_proj4(['eu'], year=2020, custom_region=custom_regions, mode='test')
+    # gedi.evaluate_and_plot('dataset/proj4_train_eu2020test.npy', nchannels=4)
+    gedi.inference(overlap=48)
     # client.download_to_gcloud('eva')
     # client.download_to_local('eva', '2022-06-20')
