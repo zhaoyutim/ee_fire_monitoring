@@ -12,6 +12,7 @@ from matplotlib import pyplot as plt
 from ParamsFetching import ParamsFetching
 from run_cnn_model_gedi import create_model
 
+# os.chdir('..')
 with open("config/sample.yml", "r", encoding="utf8") as f:
     config = yaml.load(f, Loader=yaml.FullLoader)
 
@@ -204,7 +205,7 @@ class gedi:
         return 255 * (x - np.nanmin(x)) / (np.nanmax(x) - np.nanmin(x))
 
 
-    def generate_dataset_proj4(self, region_ids = ['na', 'sa', 'af', 'eu', 'au', 'sas', 'nas'], year=2020, custom_region=None, mode='test'):
+    def generate_dataset_proj4(self, region_ids = ['na', 'sa', 'af', 'eu', 'au', 'sas', 'nas'], random_blind=False, year=2020, custom_region=None, mode='test'):
         params_fetching = ParamsFetching()
         if custom_region!=None:
             region_ids=['custom_region']
@@ -218,9 +219,9 @@ class gedi:
             print('region_id:', region_id)
             index=0
             for file in file_list:
-                if mode=='test' and 'Test' not in file:
+                if mode=='test' and 'Test' not in file and region_id!='custom_region':
                     continue
-                elif mode!='test' and 'Test' in file:
+                elif mode!='test' and 'Test' in file and region_id!='custom_region':
                     continue
                 array, _ = self.read_tiff(file)
                 if array.shape[0]!=1280 or array.shape[1]!=1280 or array.shape[2]!=11:
@@ -232,11 +233,14 @@ class gedi:
                 for i in range(3):
                     output_array[:, :, i] = self.remove_outliers(array[:, :, i], 1)
                     output_array[:, :, i] = np.nan_to_num(output_array[:, :, i])
-                output_array[:, :, 4:9] = np.nan_to_num(array[:, :, 6:])
-                output_array[:, :, 9] = np.where(agbd!=-1, np.nan_to_num(array[:, :, 5]/100, nan=-1), -1)
-                # output_array[:, :, 8] = agbd
+                if random_blind:
+                    output_array[:, :, 4:9] = np.nan_to_num(self.random_blind(array[:, :, 6:]))
+                else:
+                    output_array[:, :, 4:9] = np.nan_to_num(array[:, :, 6:])
+                # output_array[:, :, 9] = np.where(agbd!=-1, np.nan_to_num(array[:, :, 5]/100, nan=-1), -1)
+                output_array[:, :, 9] = agbd
                 output_array[:, :, 3] = array[:, :, 3]
-                if np.nanmean(output_array[:, :, 8])==-1:
+                if np.nanmean(output_array[:, :, 9])==-1:
                     continue
                 output_array = self.slice_into_small_tiles(output_array, 20)
                 dataset_list.append(output_array)
@@ -250,14 +254,14 @@ class gedi:
 
     def evaluate_and_plot(self, test_array_path='dataset/proj4_train_na2020.npy', model_path='model/proj4_unet_pretrained_resnet18_nchannels_', nchannels=4):
         import segmentation_models as sm
-        region_id='eu'
+        region_id='custom_region'
         sm.set_framework('tf.keras')
         test_array= np.load(test_array_path)
         if not os.path.exists('dataset_pred/'+region_id+'agbd_resnet18_unet_nchannels_'+str(nchannels)+'.npy'):
             model = create_model('unet', 'resnet18', 0.0003, nchannels=nchannels)
             model.load_weights(model_path+str(nchannels))
             agbd_pred = model.predict(test_array[:, :, :, :nchannels])
-            np.save('dataset_pred/'+region_id+'agbd_resnet18_unet_nchannels_'+str(nchannels)+'.npy', agbd_pred)
+            # np.save('dataset_pred/'+region_id+'agbd_resnet18_unet_nchannels_'+str(nchannels)+'.npy', agbd_pred)
         else:
             agbd_pred = np.load('dataset_pred/'+region_id+'agbd_resnet18_unet_nchannels_'+str(nchannels)+'.npy')
         agbd = test_array[:,:,:,[9]]
@@ -276,7 +280,7 @@ class gedi:
         plt.ylabel("AGBD Predicted")
         plt.show()
 
-    def inference(self, path='proj4_gedi_palsar/CUSTOM_REGION2020/*.tif', model_path='model/proj4_unet_pretrained_resnet18_nchannels_', nchannels=9, overlap=32):
+    def inference(self, path='proj4_gedi_palsar/CUSTOM_REGION2020/*.tif', random_blind=False, model_path='model/proj4_unet_pretrained_resnet18_nchannels_', nchannels=9, overlap=32):
         file_list=glob(path)
         import segmentation_models as sm
         sm.set_framework('tf.keras')
@@ -292,7 +296,10 @@ class gedi:
                 output_array[:, :, i] = self.remove_outliers(array[:, :, i], 1)
                 output_array[:, :, i] = np.nan_to_num(output_array[:, :, i])
             output_array[:, :, 3] = array[:, :, 3]
-            output_array[:, :, 4:] = np.nan_to_num(array[:, :, 6:])
+            if not random_blind:
+                output_array[:, :, 4:] = np.nan_to_num(array[:, :, 6:])
+            else:
+                output_array[:, :, 4:] = np.nan_to_num(self.random_blind(array[:, :, 6:]))
             input, loop_size = self.slice_into_small_tiles_inference(output_array, new_shape=64, overlap=overlap)
             agbd_pred = model.predict(input[:,:,:,:nchannels])
             agbd_pred = self.combine_images_inference(array=agbd_pred, loop_size=loop_size, overlap=overlap)
@@ -300,3 +307,18 @@ class gedi:
             self.write_tiff(file_dir.replace('proj4_gedi_palsar', 'recon'), agbd_pred.transpose((2,0,1)), pf)
             print('successfully reconstruct agbd predicted')
 
+    def random_blind(self, array):
+        sample_filter = np.random.binomial(1, 0.25, array.shape)
+        filter = np.logical_and(sample_filter == 1, np.logical_not(np.isnan(array)))
+        return np.where(filter, array, np.nan)
+
+if __name__=='__main__':
+
+    array=np.array([[np.nan,np.nan,np.nan,np.nan,4],
+                   [np.nan,2,np.nan,np.nan,np.nan],
+                   [np.nan,np.nan,1,np.nan,np.nan],
+                   [np.nan,3,np.nan,np.nan,np.nan],
+                   [np.nan,np.nan,np.nan,5,np.nan]])
+    gedi=gedi()
+    print(array)
+    print(gedi.random_blind(array))
