@@ -94,38 +94,40 @@ def wandb_config(model_name, backbone, batch_size, learning_rate, nchannels):
       "backbone": backbone
     }
 def create_model(model_name, backbone, learning_rate, nchannels):
-    if model_name == 'fpn':
-        input = tf.keras.Input(shape=(None, None, 3))
-        conv1 = tf.keras.layers.Conv2D(3, 3, activation = 'linear', padding = 'same', kernel_initializer = 'he_normal')(input)
-        basemodel = FPN(backbone, encoder_weights='imagenet', activation='relu', classes=1)
-        output = basemodel(conv1)
-        model = tf.keras.Model(input, output, name=model_name)
+    strategy = tf.distribute.MirroredStrategy()
+    with strategy.scope():
+        if model_name == 'fpn':
+            input = tf.keras.Input(shape=(None, None, 3))
+            conv1 = tf.keras.layers.Conv2D(3, 3, activation = 'linear', padding = 'same', kernel_initializer = 'he_normal')(input)
+            basemodel = FPN(backbone, encoder_weights='imagenet', activation='relu', classes=1)
+            output = basemodel(conv1)
+            model = tf.keras.Model(input, output, name=model_name)
 
-    elif model_name == 'unet':
-        input = tf.keras.Input(shape=(64, 64, nchannels))
-        conv1 = tf.keras.layers.Conv2D(3, 3, activation = 'linear', padding = 'same', kernel_initializer = 'he_normal')(input)
-        if backbone == 'None':
-            basemodel = Unet(input_shape=(64, 64, 3), encoder_weights='imagenet', activation='relu')
-        else:
-            basemodel = Unet(backbone, input_shape=(64, 64, 3), encoder_weights='imagenet', activation='relu')
-        output = basemodel(conv1)
-        model = tf.keras.Model(input, output, name=model_name)
+        elif model_name == 'unet':
+            input = tf.keras.Input(shape=(64, 64, nchannels))
+            conv1 = tf.keras.layers.Conv2D(3, 3, activation = 'linear', padding = 'same', kernel_initializer = 'he_normal')(input)
+            if backbone == 'None':
+                basemodel = Unet(input_shape=(64, 64, 3), encoder_weights='imagenet', activation='relu')
+            else:
+                basemodel = Unet(backbone, input_shape=(64, 64, 3), encoder_weights='imagenet', activation='relu')
+            output = basemodel(conv1)
+            model = tf.keras.Model(input, output, name=model_name)
 
-    elif model_name == 'linknet':
-        input = tf.keras.Input(shape=(None, None, 3))
-        conv1 = tf.keras.layers.Conv2D(3, 3, activation = 'linear', padding = 'same', kernel_initializer = 'he_normal')(input)
-        basemodel = Linknet(backbone, encoder_weights='imagenet', activation='relu', classes=1)
-        output = basemodel(conv1)
-        model = tf.keras.Model(input, output, name=model_name)
+        elif model_name == 'linknet':
+            input = tf.keras.Input(shape=(None, None, 3))
+            conv1 = tf.keras.layers.Conv2D(3, 3, activation = 'linear', padding = 'same', kernel_initializer = 'he_normal')(input)
+            basemodel = Linknet(backbone, encoder_weights='imagenet', activation='relu', classes=1)
+            output = basemodel(conv1)
+            model = tf.keras.Model(input, output, name=model_name)
 
-    elif model_name == 'pspnet':
-        input = tf.keras.Input(shape=(None, None, 3))
-        input_resize = tf.keras.layers.Resizing(384,384)(input)
-        conv1 = tf.keras.layers.Conv2D(3, 3, activation = 'linear', padding = 'same', kernel_initializer = 'he_normal')(input_resize)
-        basemodel = PSPNet(backbone, activation='relu', classes=1)
-        output = basemodel(conv1)
-        output_resize = tf.keras.layers.Resizing(256,256)(output)
-        model = tf.keras.Model(input, output_resize, name=model_name)
+        elif model_name == 'pspnet':
+            input = tf.keras.Input(shape=(None, None, 3))
+            input_resize = tf.keras.layers.Resizing(384,384)(input)
+            conv1 = tf.keras.layers.Conv2D(3, 3, activation = 'linear', padding = 'same', kernel_initializer = 'he_normal')(input_resize)
+            basemodel = PSPNet(backbone, activation='relu', classes=1)
+            output = basemodel(conv1)
+            output_resize = tf.keras.layers.Resizing(256,256)(output)
+            model = tf.keras.Model(input, output_resize, name=model_name)
     optimizer = tf.optimizers.SGD(learning_rate=learning_rate)
     model.compile(optimizer, loss=masked_mse, metrics= masked_mse)
     return model
