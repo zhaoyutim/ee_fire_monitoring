@@ -99,7 +99,7 @@ class GEDIClient:
         session = setup_session(username, password, check_url="https://opendap.earthdata.nasa.gov/")
         variables = ['agbd', 'l4_quality_flag', 'land_cover_data/pft_class']
         beams = ['BEAM0000', 'BEAM0001', 'BEAM0010', 'BEAM0011', 'BEAM0101', 'BEAM0110', 'BEAM1000', 'BEAM1011']
-        out_csv = 'subsets/aca_gedi_l4a'+str(id)+'.csv'
+        out_csv = 'subsets/aca_gedi_l4a' + str(id) + '.csv'
         headers = ['lat_lowestmode', 'lon_lowestmode', 'elev_lowestmode', 'shot_number']
         headers.extend(variables)
         with open(out_csv, "w") as f:
@@ -118,7 +118,7 @@ class GEDIClient:
                 # 1. Retrieving lat, lon coordinates for the file
                 hyrax_url = f"{g_name}.dap.nc4?dap4.ce=/{beam}/lon_lowestmode;/{beam}/lat_lowestmode"
                 r = session.get(hyrax_url)
-                if (r.status_code != 400) and r.content != None:
+                if (r.status_code == 200) and r.content != None:
                     ds = nc.Dataset('hyrax', memory=r.content)
                     lat = ds[beam]['lat_lowestmode'][:]
                     lon = ds[beam]['lon_lowestmode'][:]
@@ -142,10 +142,14 @@ class GEDIClient:
                                 var_s = f"/{beam}/{v}%5B{i}:{j}%5D"
                                 hyrax_url = f"{g_name}.dap.nc4?dap4.ce={var_s}"
                                 r = session.get(hyrax_url)
-                                if (r.status_code != 400) and r.content != None:
-                                    ds = nc.Dataset('hyrax.nc', memory=r.content)
-                                    gdf_aca.loc[i:j, (v)] = ds[beam][v][:]
-                                    ds.close()
+                                if (r.status_code == 200) and r.content != None:
+                                    try:
+                                        ds = nc.Dataset('hyrax.nc', memory=r.content)
+                                        gdf_aca.loc[i:j, (v)] = ds[beam][v][:]
+                                        ds.close()
+                                    except:
+                                        print('unable to parse')
+                                        continue
 
                         # saving the output file
                         gdf_aca.to_csv(out_csv, mode='a', index=False, header=False, columns=headers)
