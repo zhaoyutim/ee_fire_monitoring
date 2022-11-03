@@ -31,9 +31,9 @@ class GEDIClient:
         ax = aca.plot(ax=base, color='red')
         plt.show()
 
-    def query_with_json(self, json_path):
+    def query_with_json(self, json_path, id):
         aca = gpd.read_file(json_path)
-        aca = aca.iloc[[0]]
+        aca = aca.iloc[[id]]
         aca.crs = "EPSG:4326"
         aca.geometry = aca.geometry.apply(orient, args=(1,))
         # GEDI L4A DOI
@@ -89,9 +89,9 @@ class GEDIClient:
         print(opendap_arr[:3])
         return opendap_arr
 
-    def download(self, json_path, file_url_list):
+    def download(self, json_path, file_url_list, id):
         aca = gpd.read_file(json_path)
-        aca = aca.iloc[[0]]
+        aca = aca.iloc[[id]]
         aca.crs = "EPSG:4326"
         aca.geometry = aca.geometry.apply(orient, args=(1,))
         username = config.get('earthdata_username')
@@ -99,7 +99,7 @@ class GEDIClient:
         session = setup_session(username, password, check_url="https://opendap.earthdata.nasa.gov/")
         variables = ['agbd', 'l4_quality_flag', 'land_cover_data/pft_class']
         beams = ['BEAM0000', 'BEAM0001', 'BEAM0010', 'BEAM0011', 'BEAM0101', 'BEAM0110', 'BEAM1000', 'BEAM1011']
-        out_csv = 'subsets/aca_gedi_l4a.csv'
+        out_csv = 'subsets/aca_gedi_l4a'+str(id)+'.csv'
         headers = ['lat_lowestmode', 'lon_lowestmode', 'elev_lowestmode', 'shot_number']
         headers.extend(variables)
         with open(out_csv, "w") as f:
@@ -110,7 +110,7 @@ class GEDIClient:
         session.mount('https://', HTTPAdapter(max_retries=retries))
 
         c = 0
-        for i, g_name in enumerate(file_url_list[:3]):
+        for i, g_name in enumerate(file_url_list):
             print(g_name, i)
             c += 1
             # loop over all beams
@@ -128,7 +128,7 @@ class GEDIClient:
                     # 2. Subsetting by bounds of the area of interest
                     # converting to geopandas dataframe
                     gdf = gpd.GeoDataFrame(df, geometry=gpd.points_from_xy(df.lon_lowestmode, df.lat_lowestmode))
-                    gdf_aca = gdf[gdf['geometry'].within(aca.geometry[0])]
+                    gdf_aca = gdf[gdf['geometry'].within(aca.geometry[id])]
                     if not gdf_aca.empty:
                         # creating empty columns for variables
                         for v in headers[2:]:
