@@ -10,7 +10,7 @@ from google.cloud import storage
 from matplotlib import pyplot as plt
 
 from ParamsFetching import ParamsFetching
-from run_cnn_model_gedi import create_model
+from run_cnn_model_gedi import create_model_cpu
 
 # os.chdir('..')
 with open("config/sample.yml", "r", encoding="utf8") as f:
@@ -213,7 +213,7 @@ class gedi:
             if year == 2019:
                 path = os.path.join('proj4_gedi_palsar', region_id.upper(), '*.tif')
             else:
-                path = os.path.join('proj4_gedi_palsar', region_id.upper()+str(year), '*.tif')
+                path = os.path.join('proj4_gedi_palsar', region_id.upper()+str(year), 'year2020class_ENT_NA_140000003840-0000003840.tif')
             file_list = glob(path)
             dataset_list = []
             print('region_id:', region_id)
@@ -244,6 +244,8 @@ class gedi:
                     output_array[:, :, 4:9] = np.nan_to_num(array[:, :, 6:])
                 # output_array[:, :, 9] = np.where(agbd!=-1, np.nan_to_num(array[:, :, 5]/100, nan=-1), -1)
                 output_array[:, :, 9] = agbd
+                print(file)
+                print(agbd.max())
                 output_array[:, :, 3] = array[:, :, 3]
                 if np.nanmean(output_array[:, :, 9])==-1:
                     continue
@@ -251,7 +253,7 @@ class gedi:
                 dataset_list.append(output_array)
 
                 if index % 10==0:
-                    # break
+                    break
                     print('{:.2f}% completed'.format(index*100/len(file_list)))
 
             dataset = np.concatenate(dataset_list, axis=0)
@@ -290,7 +292,7 @@ class gedi:
         file_list=glob(path)
         import segmentation_models as sm
         sm.set_framework('tf.keras')
-        model = create_model('unet', 'resnet18', 0.0003, nchannels)
+        model = create_model_cpu('unet', 'resnet18', 0.0003, nchannels)
         model.load_weights(model_path+str(nchannels))
         for file_dir in file_list:
             array, pf = self.read_tiff(file_dir)
