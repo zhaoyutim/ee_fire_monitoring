@@ -224,11 +224,16 @@ class gedi:
                 elif mode!='test' and 'Test' in file and region_id!='custom_region':
                     continue
                 array, _ = self.read_tiff(file)
+                index += 1
                 if array.shape[0]!=1280 or array.shape[1]!=1280 or array.shape[2]!=11:
                     continue
-
+                for i in range(5):
+                    rh = array[:, :, 6+i]
+                    rh_mean = np.nanmean(rh)
+                    rh_std = np.nanstd(rh)
+                    array[:, :, 6+i]=np.where(rh > rh_mean+2*rh_std, np.nan, rh)
                 output_array = np.zeros((array.shape[0], array.shape[1], 10)).astype(np.float32)
-                print(index)
+                # print(index)
                 agbd = params_fetching.get_agbd(array[:, :, 4:])
                 for i in range(3):
                     output_array[:, :, i] = self.remove_outliers(array[:, :, i], 1)
@@ -244,13 +249,14 @@ class gedi:
                     continue
                 output_array = self.slice_into_small_tiles(output_array, 20)
                 dataset_list.append(output_array)
-                index += 25
-                if index % 1000==0:
+
+                if index % 10==0:
                     # break
-                    print('{:.2f}% completed'.format(index*100/len(file_list)/25))
+                    print('{:.2f}% completed'.format(index*100/len(file_list)))
 
             dataset = np.concatenate(dataset_list, axis=0)
             np.save('dataset/proj4_train_'+region_id+str(year)+mode+'.npy', dataset)
+            print('finish')
 
     def evaluate_and_plot(self, test_array_path='dataset/proj4_train_na2020.npy', model_path='model/proj4_unet_pretrained_resnet18_nchannels_', nchannels=4):
         import segmentation_models as sm
@@ -308,7 +314,7 @@ class gedi:
             print('successfully reconstruct agbd predicted')
 
     def random_blind(self, array):
-        sample_filter = np.random.binomial(1, 0.25, array.shape)
+        sample_filter = np.random.binomial(1, 1, array.shape)
         filter = np.logical_and(sample_filter == 1, np.logical_not(np.isnan(array)))
         return np.where(filter, array, np.nan)
 

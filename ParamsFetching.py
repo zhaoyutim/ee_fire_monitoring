@@ -36,12 +36,21 @@ class ParamsFetching:
             i1 = self.rh_index_dict[rh1]+1
             rh1_masked_by_ps = np.where(ps_array == ps_id, array[:, :, i1], np.nan)
             if rh2 != 0:
-                i2 = self.rh_index_dict[rh2]+1
+                i2 = self.rh_index_dict[rh2] + 1
                 rh2_masked_by_ps = np.where(ps_array == ps_id, array[:, :, i2], np.nan)
-                agbd_ps = params.get('a') * pow((params.get('b') + params.get('c') * np.sqrt(rh1_masked_by_ps+100) +
-                                               params.get('d') * np.sqrt(rh2_masked_by_ps+100)), 2)
+                if ps_id=='gsw_auoc':
+                    rh3 = params.get('e_rh')
+                    i3 = self.rh_index_dict[rh3] + 1
+                    rh3_masked_by_ps = np.where(ps_array == ps_id, array[:, :, i3], np.nan)
+                    agbd_ps = params.get('a') * pow(params.get('b') +
+                                                    params.get('c') * np.sqrt(rh1_masked_by_ps+100) +
+                                                    params.get('d') * np.sqrt(rh2_masked_by_ps+100) +
+                                                    params.get('e') * np.sqrt(rh3_masked_by_ps+100), 2) /100
+                else:
+                    agbd_ps = params.get('a') * pow(params.get('b') + params.get('c') * np.sqrt(rh1_masked_by_ps+100) +
+                                                   params.get('d') * np.sqrt(rh2_masked_by_ps+100), 2) /100
             else:
-                agbd_ps = params.get('a') * pow(params.get('b') + params.get('c') * np.sqrt(rh1_masked_by_ps + 100), 2)
+                agbd_ps = params.get('a') * pow(params.get('b') + params.get('c') * np.sqrt(rh1_masked_by_ps + 100), 2) /100
             agbd += np.where(np.isnan(agbd_ps), 0, agbd_ps)
             agbd = np.where(agbd==0, -1, agbd)
         return agbd
