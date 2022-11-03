@@ -119,37 +119,44 @@ class GEDIClient:
                 hyrax_url = f"{g_name}.dap.nc4?dap4.ce=/{beam}/lon_lowestmode;/{beam}/lat_lowestmode"
                 r = session.get(hyrax_url)
                 if (r.status_code == 200) and r.content != None:
-                    ds = nc.Dataset('hyrax', memory=r.content)
-                    lat = ds[beam]['lat_lowestmode'][:]
-                    lon = ds[beam]['lon_lowestmode'][:]
-                    ds.close()
-                    df = pd.DataFrame({'lat_lowestmode': lat, 'lon_lowestmode': lon})  # creating pandas dataframe
 
-                    # 2. Subsetting by bounds of the area of interest
-                    # converting to geopandas dataframe
-                    gdf = gpd.GeoDataFrame(df, geometry=gpd.points_from_xy(df.lon_lowestmode, df.lat_lowestmode))
-                    gdf_aca = gdf[gdf['geometry'].within(aca.geometry[id])]
-                    if not gdf_aca.empty:
-                        # creating empty columns for variables
-                        for v in headers[2:]:
-                            gdf_aca[v] = None
-                        # 3. retrieving variables of interest, agbd, agbd_t in this case.
-                        # We are only retriving the shots within subset area.
-                        for _, df_gr in gdf_aca.groupby((gdf_aca.index.to_series().diff() > 1).cumsum()):
-                            i = df_gr.index.min()
-                            j = df_gr.index.max()
+                    try:
+                        ds = nc.Dataset('hyrax', memory=r.content)
+                        lat = ds[beam]['lat_lowestmode'][:]
+                        lon = ds[beam]['lon_lowestmode'][:]
+                        ds.close()
+                        df = pd.DataFrame({'lat_lowestmode': lat, 'lon_lowestmode': lon})  # creating pandas dataframe
+
+                        # 2. Subsetting by bounds of the area of interest
+                        # converting to geopandas dataframe
+                        gdf = gpd.GeoDataFrame(df, geometry=gpd.points_from_xy(df.lon_lowestmode, df.lat_lowestmode))
+                        gdf_aca = gdf[gdf['geometry'].within(aca.geometry[id])]
+                        if not gdf_aca.empty:
+                            # creating empty columns for variables
                             for v in headers[2:]:
-                                var_s = f"/{beam}/{v}%5B{i}:{j}%5D"
-                                hyrax_url = f"{g_name}.dap.nc4?dap4.ce={var_s}"
-                                r = session.get(hyrax_url)
-                                if (r.status_code == 200) and r.content != None:
-                                    try:
-                                        ds = nc.Dataset('hyrax.nc', memory=r.content)
-                                        gdf_aca.loc[i:j, (v)] = ds[beam][v][:]
-                                        ds.close()
-                                    except:
-                                        print('unable to parse')
-                                        continue
+                                gdf_aca[v] = None
+                            # 3. retrieving variables of interest, agbd, agbd_t in this case.
+                            # We are only retriving the shots within subset area.
+                            for _, df_gr in gdf_aca.groupby((gdf_aca.index.to_series().diff() > 1).cumsum()):
+                                i = df_gr.index.min()
+                                j = df_gr.index.max()
+                                for v in headers[2:]:
+                                    var_s = f"/{beam}/{v}%5B{i}:{j}%5D"
+                                    hyrax_url = f"{g_name}.dap.nc4?dap4.ce={var_s}"
+                                    r = session.get(hyrax_url)
+                                    if (r.status_code == 200) and r.content != None:
+                                        try:
+                                            ds = nc.Dataset('hyrax.nc', memory=r.content)
+                                            gdf_aca.loc[i:j, (v)] = ds[beam][v][:]
+                                            ds.close()
+                                        except:
+                                            print('unable to parse')
+                                            print(r.content)
+                                            continue
 
-                        # saving the output file
-                        gdf_aca.to_csv(out_csv, mode='a', index=False, header=False, columns=headers)
+                            # saving the output file
+                            gdf_aca.to_csv(out_csv, mode='a', index=False, header=False, columns=headers)
+                    except:
+                        print('unable to parse')
+                        print(r.content)
+                        continue
