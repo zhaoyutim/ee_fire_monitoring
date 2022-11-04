@@ -213,7 +213,7 @@ class gedi:
             if year == 2019:
                 path = os.path.join('proj4_gedi_palsar', region_id.upper(), '*.tif')
             else:
-                path = os.path.join('proj4_gedi_palsar', region_id.upper()+str(year), 'year2020class_ENT_NA_140000003840-0000003840.tif')
+                path = os.path.join('proj4_gedi_palsar', region_id.upper()+str(year), '*.tif')
             file_list = glob(path)
             dataset_list = []
             print('region_id:', region_id)
@@ -245,7 +245,6 @@ class gedi:
                 # output_array[:, :, 9] = np.where(agbd!=-1, np.nan_to_num(array[:, :, 5]/100, nan=-1), -1)
                 output_array[:, :, 9] = agbd
                 print(file)
-                print(agbd.max())
                 output_array[:, :, 3] = array[:, :, 3]
                 if np.nanmean(output_array[:, :, 9])==-1:
                     continue
@@ -266,7 +265,7 @@ class gedi:
         sm.set_framework('tf.keras')
         test_array= np.load(test_array_path)
         if not os.path.exists('dataset_pred/'+region_id+'agbd_resnet18_unet_nchannels_'+str(nchannels)+'.npy'):
-            model = create_model('unet', 'resnet18', 0.0003, nchannels=nchannels)
+            model = create_model_cpu('unet', 'resnet18', 0.0003, nchannels=nchannels)
             model.load_weights(model_path+str(nchannels))
             agbd_pred = model.predict(test_array[:, :, :, :nchannels])
             # np.save('dataset_pred/'+region_id+'agbd_resnet18_unet_nchannels_'+str(nchannels)+'.npy', agbd_pred)
@@ -280,7 +279,7 @@ class gedi:
         plt.title('Correlation with '+str(nchannels)+' channels. r-squared: {0:.2f}'.format(r_value ** 2))
         x = np.linspace(0, 600, 500)
         y = np.linspace(0, 600, 500)
-        plt.scatter(x=x_scatter * 100, y=y_scatter * 100, c='g')
+        plt.scatter(x=(x_scatter*slope+intercept) * 100, y=y_scatter * 100, c='g', s=1)
         plt.plot(x, y, c='b')
         plt.xlim([0, 600])
         plt.ylim([0, 600])

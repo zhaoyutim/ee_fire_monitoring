@@ -1,3 +1,4 @@
+import glob
 import warnings
 
 import geopandas as gpd
@@ -149,3 +150,13 @@ class GEDIClient:
 
                         # saving the output file
                         gdf_aca.to_csv(out_csv, mode='a', index=False, header=False, columns=headers)
+
+    def concatcsv(self, path):
+        file_list = glob.glob(path)
+        li = []
+        for file in file_list:
+            df = pd.read_csv(file, index_col=None, header=0)
+            df.rename(columns={'lat_lowestmode': 'lat', 'lon_lowestmode': 'lon'}, inplace=True)
+            li.append(df)
+        frame = pd.concat(li, axis=0, ignore_index=True)
+        frame.to_csv('conbine_csv.csv', mode='a', index=False, header=False)
