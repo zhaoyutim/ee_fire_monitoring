@@ -32,9 +32,9 @@ class GEDIClient:
         ax = aca.plot(ax=base, color='red')
         plt.show()
 
-    def query_with_json(self, json_path):
+    def query_with_json(self, json_path, id):
         aca = gpd.read_file(json_path)
-        aca = aca.iloc[[0]]
+        aca = aca.iloc[[id]]
         aca.crs = "EPSG:4326"
         aca.geometry = aca.geometry.apply(orient, args=(1,))
         # GEDI L4A DOI
@@ -90,9 +90,9 @@ class GEDIClient:
         print(opendap_arr[:3])
         return opendap_arr
 
-    def download(self, json_path, file_url_list):
+    def download(self, json_path, file_url_list, id):
         aca = gpd.read_file(json_path)
-        aca = aca.iloc[[0]]
+        aca = aca.iloc[[id]]
         aca.crs = "EPSG:4326"
         aca.geometry = aca.geometry.apply(orient, args=(1,))
         username = config.get('earthdata_username')
@@ -100,7 +100,7 @@ class GEDIClient:
         session = setup_session(username, password, check_url="https://opendap.earthdata.nasa.gov/")
         variables = ['agbd', 'l4_quality_flag', 'land_cover_data/pft_class']
         beams = ['BEAM0000', 'BEAM0001', 'BEAM0010', 'BEAM0011', 'BEAM0101', 'BEAM0110', 'BEAM1000', 'BEAM1011']
-        out_csv = 'subsets/aca_gedi_l4a.csv'
+        out_csv = 'subsets/aca_gedi_l4a' + str(id) + '.csv'
         headers = ['lat_lowestmode', 'lon_lowestmode', 'elev_lowestmode', 'shot_number']
         headers.extend(variables)
         with open(out_csv, "w") as f:
@@ -111,7 +111,7 @@ class GEDIClient:
         session.mount('https://', HTTPAdapter(max_retries=retries))
 
         c = 0
-        for i, g_name in enumerate(file_url_list[:3]):
+        for i, g_name in enumerate(file_url_list):
             print(g_name, i)
             c += 1
             # loop over all beams
@@ -119,27 +119,23 @@ class GEDIClient:
                 # 1. Retrieving lat, lon coordinates for the file
                 hyrax_url = f"{g_name}.dap.nc4?dap4.ce=/{beam}/lon_lowestmode;/{beam}/lat_lowestmode"
                 r = session.get(hyrax_url)
-                if (r.status_code != 400) and r.content != None:
-                    ds = nc.Dataset('hyrax', memory=r.content)
-                    lat = ds[beam]['lat_lowestmode'][:]
-                    lon = ds[beam]['lon_lowestmode'][:]
-                    ds.close()
-                    df = pd.DataFrame({'lat_lowestmode': lat, 'lon_lowestmode': lon})  # creating pandas dataframe
+                if (r.status_code == 200) and r.content != None:
 
-                    # 2. Subsetting by bounds of the area of interest
-                    # converting to geopandas dataframe
-                    gdf = gpd.GeoDataFrame(df, geometry=gpd.points_from_xy(df.lon_lowestmode, df.lat_lowestmode))
-                    gdf_aca = gdf[gdf['geometry'].within(aca.geometry[0])]
-                    if not gdf_aca.empty:
-                        # creating empty columns for variables
-                        for v in headers[2:]:
-                            gdf_aca[v] = None
-                        # 3. retrieving variables of interest, agbd, agbd_t in this case.
-                        # We are only retriving the shots within subset area.
-                        for _, df_gr in gdf_aca.groupby((gdf_aca.index.to_series().diff() > 1).cumsum()):
-                            i = df_gr.index.min()
-                            j = df_gr.index.max()
+                    try:
+                        ds = nc.Dataset('hyrax', memory=r.content)
+                        lat = ds[beam]['lat_lowestmode'][:]
+                        lon = ds[beam]['lon_lowestmode'][:]
+                        ds.close()
+                        df = pd.DataFrame({'lat_lowestmode': lat, 'lon_lowestmode': lon})  # creating pandas dataframe
+
+                        # 2. Subsetting by bounds of the area of interest
+                        # converting to geopandas dataframe
+                        gdf = gpd.GeoDataFrame(df, geometry=gpd.points_from_xy(df.lon_lowestmode, df.lat_lowestmode))
+                        gdf_aca = gdf[gdf['geometry'].within(aca.geometry[id])]
+                        if not gdf_aca.empty:
+                            # creating empty columns for variables
                             for v in headers[2:]:
+<<<<<<< HEAD
                                 var_s = f"/{beam}/{v}%5B{i}:{j}%5D"
                                 hyrax_url = f"{g_name}.dap.nc4?dap4.ce={var_s}"
                                 r = session.get(hyrax_url)
@@ -160,3 +156,31 @@ class GEDIClient:
             li.append(df)
         frame = pd.concat(li, axis=0, ignore_index=True)
         frame.to_csv('conbine_csv.csv', mode='a', index=False, header=False)
+=======
+                                gdf_aca[v] = None
+                            # 3. retrieving variables of interest, agbd, agbd_t in this case.
+                            # We are only retriving the shots within subset area.
+                            for _, df_gr in gdf_aca.groupby((gdf_aca.index.to_series().diff() > 1).cumsum()):
+                                i = df_gr.index.min()
+                                j = df_gr.index.max()
+                                for v in headers[2:]:
+                                    var_s = f"/{beam}/{v}%5B{i}:{j}%5D"
+                                    hyrax_url = f"{g_name}.dap.nc4?dap4.ce={var_s}"
+                                    r = session.get(hyrax_url)
+                                    if (r.status_code == 200) and r.content != None:
+                                        try:
+                                            ds = nc.Dataset('hyrax.nc', memory=r.content)
+                                            gdf_aca.loc[i:j, (v)] = ds[beam][v][:]
+                                            ds.close()
+                                        except:
+                                            print('unable to parse')
+                                            print(r.content)
+                                            continue
+
+                            # saving the output file
+                            gdf_aca.to_csv(out_csv, mode='a', index=False, header=False, columns=headers)
+                    except:
+                        print('unable to parse')
+                        print(r.content)
+                        continue
+>>>>>>> 6a35926f90680be4ffaaea79da10ef82c41c6bf4
