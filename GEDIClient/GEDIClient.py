@@ -135,28 +135,6 @@ class GEDIClient:
                         if not gdf_aca.empty:
                             # creating empty columns for variables
                             for v in headers[2:]:
-<<<<<<< HEAD
-                                var_s = f"/{beam}/{v}%5B{i}:{j}%5D"
-                                hyrax_url = f"{g_name}.dap.nc4?dap4.ce={var_s}"
-                                r = session.get(hyrax_url)
-                                if (r.status_code != 400) and r.content != None:
-                                    ds = nc.Dataset('hyrax.nc', memory=r.content)
-                                    gdf_aca.loc[i:j, (v)] = ds[beam][v][:]
-                                    ds.close()
-
-                        # saving the output file
-                        gdf_aca.to_csv(out_csv, mode='a', index=False, header=False, columns=headers)
-
-    def concatcsv(self, path):
-        file_list = glob.glob(path)
-        li = []
-        for file in file_list:
-            df = pd.read_csv(file, index_col=None, header=0)
-            df.rename(columns={'lat_lowestmode': 'lat', 'lon_lowestmode': 'lon'}, inplace=True)
-            li.append(df)
-        frame = pd.concat(li, axis=0, ignore_index=True)
-        frame.to_csv('conbine_csv.csv', mode='a', index=False, header=False)
-=======
                                 gdf_aca[v] = None
                             # 3. retrieving variables of interest, agbd, agbd_t in this case.
                             # We are only retriving the shots within subset area.
@@ -183,4 +161,12 @@ class GEDIClient:
                         print('unable to parse')
                         print(r.content)
                         continue
->>>>>>> 6a35926f90680be4ffaaea79da10ef82c41c6bf4
+    def concatcsv(self, path):
+        file_list = glob.glob(path)
+        li = []
+        for file in file_list:
+            df = pd.read_csv(file, index_col=None, header=0)
+            df.rename(columns={'lat_lowestmode': 'lat', 'lon_lowestmode': 'lon'}, inplace=True)
+            li.append(df)
+        frame = pd.concat(li, axis=0, ignore_index=True)
+        frame.to_csv('conbine_csv.csv', mode='a', index=False, header=False)
