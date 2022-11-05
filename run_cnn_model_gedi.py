@@ -41,6 +41,8 @@ def get_dateset_gedi(batch_size, nchannels):
     #     x_train = np.concatenate((x_train, np.load('/geoinfo_vol1/zhao2/proj4_dataset/proj4_train_sas' + '.npy').astype(np.float32)), axis=0)
     #     x_train = np.concatenate((x_train, np.load('/geoinfo_vol1/zhao2/proj4_dataset/proj4_train_nas' + '.npy').astype(np.float32)), axis=0)
     y_train = np.where(x_train[:,:,:,9]==-1, x_train[:,:,:,9], x_train[:,:,:,9]/100)
+    y_train = np.where(y_train>5, -1, y_train)
+    y_train = np.where(y_train<0, -1, y_train)
     if nchannels==6:
         x_train, x_val, y_train, y_val = train_test_split(np.nan_to_num(x_train[:, :, :, 3:9]), y_train,
                                                           test_size=0.2, random_state=0)
