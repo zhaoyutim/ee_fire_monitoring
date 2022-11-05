@@ -26,6 +26,7 @@ class gedi:
         composite = ee.Image([sarHh_log, sarHv_log, sarhvhh])
         lc = ee.ImageCollection("ESA/WorldCover/v100").first()
         l4b = ee.Image('LARSE/GEDI/GEDI04_B_002').select(['PS', 'MU'])
+        l4a_table = ee.FeatureCollection("projects/ee-zhaoyutim/assets/conbine_csv")
         if custom_region == None:
             for region_id in region_ids:
                 if mode=='test':
@@ -47,7 +48,9 @@ class gedi:
                         .filterDate(date_pre.difference(15, "day"), date_pre.advance(15, "day"))\
                         .map(self.qualityMask)\
                         .select(['rh40', 'rh50', 'rh60', 'rh70', 'rh98']).mosaic()
-                    output = ee.Image([composite, lc, l4b, gedi])
+                    l4a_table_i = l4a_table.filterBounds(roi.geometry())
+                    l4a_table_i = l4a_table_i.reduceToImage(['agbd'], ee.Reducer.first()).rename('agbd')
+                    output = ee.Image([composite, lc, l4b, gedi, l4a_table_i])
                     dir = 'proj4_gedi_palsar' + '/' + region_id.upper() + str(year) + '/' + 'year'+ str(year)+ 'class_' + class_id + '_' + str(i)
                     if mode=='test':
                         mode_str=mode
@@ -225,7 +228,7 @@ class gedi:
                     continue
                 array, _ = self.read_tiff(file)
                 index += 1
-                if array.shape[0]!=1280 or array.shape[1]!=1280 or array.shape[2]!=11:
+                if array.shape[0]!=1280 or array.shape[1]!=1280 or array.shape[2]!=12:
                     continue
                 for i in range(5):
                     rh = array[:, :, 6+i]
@@ -234,17 +237,18 @@ class gedi:
                     array[:, :, 6+i]=np.where(rh > rh_mean+2*rh_std, np.nan, rh)
                 output_array = np.zeros((array.shape[0], array.shape[1], 10)).astype(np.float32)
                 # print(index)
-                agbd = params_fetching.get_agbd(array[:, :, 4:])
+                # agbd = params_fetching.get_agbd(array[:, :, 4:])
                 for i in range(3):
                     output_array[:, :, i] = self.remove_outliers(array[:, :, i], 1)
                     output_array[:, :, i] = np.nan_to_num(output_array[:, :, i])
                 if random_blind:
-                    output_array[:, :, 4:9] = np.nan_to_num(self.random_blind(array[:, :, 6:]))
+                    output_array[:, :, 4:9] = np.nan_to_num(self.random_blind(array[:, :, 6:11]))
                 else:
                     output_array[:, :, 4:9] = np.nan_to_num(array[:, :, 6:])
                 # output_array[:, :, 9] = np.where(agbd!=-1, np.nan_to_num(array[:, :, 5]/100, nan=-1), -1)
-                output_array[:, :, 9] = agbd
-                print(file)
+                agbd=np.where(array[:, :, 11]==-9999, np.nan, array[:, :, 11])
+                output_array[:, :, 9] = np.nan_to_num(agbd, nan=-1)
+                print(index)
                 output_array[:, :, 3] = array[:, :, 3]
                 if np.nanmean(output_array[:, :, 9])==-1:
                     continue
@@ -252,7 +256,7 @@ class gedi:
                 dataset_list.append(output_array)
 
                 if index % 10==0:
-                    break
+                    # break
                     print('{:.2f}% completed'.format(index*100/len(file_list)))
 
             dataset = np.concatenate(dataset_list, axis=0)

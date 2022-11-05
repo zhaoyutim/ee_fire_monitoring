@@ -164,9 +164,19 @@ class GEDIClient:
     def concatcsv(self, path):
         file_list = glob.glob(path)
         li = []
+        headers = ['lat', 'lon', 'elev_lowestmode', 'shot_number', 'agbd', 'l4_quality_flag', 'land_cover_data/pft_class']
         for file in file_list:
             df = pd.read_csv(file, index_col=None, header=0)
             df.rename(columns={'lat_lowestmode': 'lat', 'lon_lowestmode': 'lon'}, inplace=True)
             li.append(df)
         frame = pd.concat(li, axis=0, ignore_index=True)
-        frame.to_csv('conbine_csv.csv', mode='a', index=False, header=False)
+        frame.to_csv('conbine_csv.csv', mode='a', index=False, header=headers)
+
+    def csv_to_tiff(self, path):
+        df = pd.read_csv(path, index_col=None, header=0)
+        import xarray as xr
+        import rioxarray
+        da=df.head().set_index(['lat_lowestmode', 'lon_lowestmode']).to_xarray()
+        da.agbd.rio.set_spatial_dims(x_dim=256*20, y_dim=256*20)
+        da.agbd.rio.to_raster('sd.tiff')
+        return df
