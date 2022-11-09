@@ -12,7 +12,7 @@ def gedi_download(region, id):
     gedi_client=GEDIClient()
     # gedi_client.visualize_geojson(json_path)
     file_url_list = gedi_client.query_with_json(json_path, id)
-    gedi_client.download(json_path, file_url_list, id)
+    gedi_client.download(json_path, file_url_list, region, id)
 
 if __name__=='__main__':
     parser = argparse.ArgumentParser(description='Process some integers.')
@@ -28,5 +28,4 @@ if __name__=='__main__':
     pool.close()
     pool.join()
     # gedi_client.concatcsv('subsets/*.csv')
-    # gedi_client.csv_to_tiff('subsets/aca_gedi_l4a0.csv')
 

@@ -1,4 +1,5 @@
 import glob
+import os.path
 import warnings
 
 import geopandas as gpd
@@ -90,7 +91,7 @@ class GEDIClient:
         print(opendap_arr[:3])
         return opendap_arr
 
-    def download(self, json_path, file_url_list, id):
+    def download(self, json_path, file_url_list, region, id):
         aca = gpd.read_file(json_path)
         aca = aca.iloc[[id]]
         aca.crs = "EPSG:4326"
@@ -100,7 +101,9 @@ class GEDIClient:
         session = setup_session(username, password, check_url="https://opendap.earthdata.nasa.gov/")
         variables = ['agbd', 'l4_quality_flag', 'land_cover_data/pft_class']
         beams = ['BEAM0000', 'BEAM0001', 'BEAM0010', 'BEAM0011', 'BEAM0101', 'BEAM0110', 'BEAM1000', 'BEAM1011']
-        out_csv = 'subsets/aca_gedi_l4a' + str(id) + '.csv'
+        out_csv = 'subsets/'+region+'/'+region+'_gedi_l4a' + str(id) + '.csv'
+        if not os.path.exists('subsets/'+region+'/'):
+            os.mkdir('subsets/'+region+'/')
         headers = ['lat_lowestmode', 'lon_lowestmode', 'elev_lowestmode', 'shot_number']
         headers.extend(variables)
         with open(out_csv, "w") as f:
@@ -126,7 +129,7 @@ class GEDIClient:
                         lat = ds[beam]['lat_lowestmode'][:]
                         lon = ds[beam]['lon_lowestmode'][:]
                         ds.close()
-                        df = pd.DataFrame({'lat_lowestmode': lat, 'lon_lowestmode': lon})  # creating pandas dataframe
+                        df = pd.DataFrame({'lat': lat, 'lon': lon})  # creating pandas dataframe
 
                         # 2. Subsetting by bounds of the area of interest
                         # converting to geopandas dataframe
@@ -171,12 +174,3 @@ class GEDIClient:
             li.append(df)
         frame = pd.concat(li, axis=0, ignore_index=True)
         frame.to_csv('conbine_csv.csv', mode='a', index=False, header=headers)
-
-    def csv_to_tiff(self, path):
-        df = pd.read_csv(path, index_col=None, header=0)
-        import xarray as xr
-        import rioxarray
-        da=df.head().set_index(['lat_lowestmode', 'lon_lowestmode']).to_xarray()
-        da.agbd.rio.set_spatial_dims(x_dim=256*20, y_dim=256*20)
-        da.agbd.rio.to_raster('sd.tiff')
-        return df
