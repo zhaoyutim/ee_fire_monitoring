@@ -4,4 +4,4 @@
 #SBATCH --mem  16GB
 #SBATCH --cpus-per-task 1
 
-PYTHONUNBUFFERED=1; python main_gedi_client.py -id $1
+PYTHONUNBUFFERED=1; python main_gedi_client.py -region $1
