@@ -26,7 +26,7 @@ class gedi:
         composite = ee.Image([sarHh_log, sarHv_log, sarhvhh])
         lc = ee.ImageCollection("ESA/WorldCover/v100").first()
         l4b = ee.Image('LARSE/GEDI/GEDI04_B_002').select(['PS', 'MU'])
-        l4a_table = ee.FeatureCollection("projects/ee-zhaoyutim/assets/conbine_csv")
+        l4a_table = ee.FeatureCollection("projects/ee-zhaoyutim/assets/gedil4a_custom_region")
         if custom_region == None:
             for region_id in region_ids:
                 if mode=='test':
@@ -87,7 +87,9 @@ class gedi:
                 .filterDate(date_pre.difference(15, "day"), date_pre.advance(15, "day"))\
                 .map(self.qualityMask)\
                 .select(['rh40', 'rh50', 'rh60', 'rh70', 'rh98']).mosaic()
-            output = ee.Image([composite, lc, l4b, gedi])
+            l4a_table_i = l4a_table.filterBounds(roi.geometry())
+            l4a_table_i = l4a_table_i.reduceToImage(['agbd'], ee.Reducer.first()).rename('agbd')
+            output = ee.Image([composite, lc, l4b, gedi, l4a_table_i])
             dir = 'proj4_gedi_palsar' + '/' + 'custom_region' + str(year) + '/' + 'year'+ str(year)
             image_task = ee.batch.Export.image.toCloudStorage(
                 image=output.toFloat(),
@@ -237,7 +239,8 @@ class gedi:
                     array[:, :, 6+i]=np.where(rh > rh_mean+2*rh_std, np.nan, rh)
                 output_array = np.zeros((array.shape[0], array.shape[1], 10)).astype(np.float32)
                 # print(index)
-                agbd_l2a = params_fetching.get_agbd(array[:, :, 4:])
+                # agbd_l2a = params_fetching.get_agbd(array[:, :, 4:])
+                # agbd_l2a = np.where(agbd_l2a==-1, np.nan, agbd_l2a)
                 for i in range(3):
                     output_array[:, :, i] = self.remove_outliers(array[:, :, i], 1)
                     output_array[:, :, i] = np.nan_to_num(output_array[:, :, i])
@@ -247,7 +250,7 @@ class gedi:
                     output_array[:, :, 4:9] = np.nan_to_num(array[:, :, 6:])
                 # output_array[:, :, 9] = np.where(agbd!=-1, np.nan_to_num(array[:, :, 5]/100, nan=-1), -1)
                 agbd = np.where(array[:, :, 11]==-9999, np.nan, array[:, :, 11]/100)
-                # agbd = np.where(np.logical_or(array[:, :, 3] <= 30, array[:, :, 3] == 95), agbd, np.nan)
+                # agbd = np.where(array[:, :, 3] == 10, agbd, np.nan)
                 output_array[:, :, 9] = np.nan_to_num(agbd, nan=-1)
                 print(index)
                 output_array[:, :, 3] = array[:, :, 3]
@@ -286,7 +289,7 @@ class gedi:
         plt.title('Correlation with ' + str(nchannels) + ' channels. r-squared: {0:.2f}'.format(r_value ** 2))
         x = np.linspace(0, 400, 500)
         y = np.linspace(0, 400, 500)
-        plt.scatter(x=(intercept+x_scatter[x_scatter > 0]* slope) * 100, y=y_scatter[x_scatter > 0] * 100, c='g', s=0.01)
+        plt.scatter(x=x_scatter[x_scatter > 0] * 100, y=y_scatter[x_scatter > 0] * 100, c='g', s=0.01)
         plt.plot(x, y, c='r')
         # plt.plot(x, intercept + x * slope, 'r')
         # plt.xlim([0, 1000])
