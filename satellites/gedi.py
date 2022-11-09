@@ -239,8 +239,8 @@ class gedi:
                     array[:, :, 6+i]=np.where(rh > rh_mean+2*rh_std, np.nan, rh)
                 output_array = np.zeros((array.shape[0], array.shape[1], 10)).astype(np.float32)
                 # print(index)
-                # agbd_l2a = params_fetching.get_agbd(array[:, :, 4:])
-                # agbd_l2a = np.where(agbd_l2a==-1, np.nan, agbd_l2a)
+                agbd_l2a = params_fetching.get_agbd(array[:, :, 4:])
+                agbd_l2a = np.where(agbd_l2a==-1, np.nan, agbd_l2a)
                 for i in range(3):
                     output_array[:, :, i] = self.remove_outliers(array[:, :, i], 1)
                     output_array[:, :, i] = np.nan_to_num(output_array[:, :, i])
@@ -260,7 +260,7 @@ class gedi:
                 dataset_list.append(output_array)
 
                 if index % 10==0:
-                    # break
+                    break
                     print('{:.2f}% completed'.format(index*100/len(file_list)))
 
             dataset = np.concatenate(dataset_list, axis=0)
