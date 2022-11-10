@@ -119,17 +119,18 @@ class GEDIClient:
             c += 1
             # loop over all beams
             for beam in beams:
+                print(beam)
                 # 1. Retrieving lat, lon coordinates for the file
                 hyrax_url = f"{g_name}.dap.nc4?dap4.ce=/{beam}/lon_lowestmode;/{beam}/lat_lowestmode"
                 r = session.get(hyrax_url)
-                if (r.status_code == 200) and r.content != None:
+                if (r.status_code == 200) and r.content != b'':
 
                     try:
                         ds = nc.Dataset('hyrax', memory=r.content)
                         lat = ds[beam]['lat_lowestmode'][:]
                         lon = ds[beam]['lon_lowestmode'][:]
                         ds.close()
-                        df = pd.DataFrame({'lat': lat, 'lon': lon})  # creating pandas dataframe
+                        df = pd.DataFrame({'lat_lowestmode': lat, 'lon_lowestmode': lon})  # creating pandas dataframe
 
                         # 2. Subsetting by bounds of the area of interest
                         # converting to geopandas dataframe
@@ -148,7 +149,7 @@ class GEDIClient:
                                     var_s = f"/{beam}/{v}%5B{i}:{j}%5D"
                                     hyrax_url = f"{g_name}.dap.nc4?dap4.ce={var_s}"
                                     r = session.get(hyrax_url)
-                                    if (r.status_code == 200) and r.content != None:
+                                    if (r.status_code == 200) and r.content != b'':
                                         try:
                                             ds = nc.Dataset('hyrax.nc', memory=r.content)
                                             gdf_aca.loc[i:j, (v)] = ds[beam][v][:]
@@ -164,7 +165,7 @@ class GEDIClient:
                         print('unable to parse')
                         print(r.content)
                         continue
-    def concatcsv(self, path):
+    def concatcsv(self, path, region):
         file_list = glob.glob(path)
         li = []
         headers = ['lat', 'lon', 'elev_lowestmode', 'shot_number', 'agbd', 'l4_quality_flag', 'land_cover_data/pft_class']
@@ -173,4 +174,4 @@ class GEDIClient:
             df.rename(columns={'lat_lowestmode': 'lat', 'lon_lowestmode': 'lon'}, inplace=True)
             li.append(df)
         frame = pd.concat(li, axis=0, ignore_index=True)
-        frame.to_csv('conbine_csv.csv', mode='a', index=False, header=headers)
+        frame.to_csv('csv/conbine_csv_'+region+'.csv', mode='a', index=False, header=headers)

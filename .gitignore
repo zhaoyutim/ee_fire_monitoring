@@ -22,3 +22,5 @@ recon
 dataset_pred
 config/credential.yml
 subsets
+csv
+venv

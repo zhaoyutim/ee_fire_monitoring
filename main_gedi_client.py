@@ -20,12 +20,15 @@ if __name__=='__main__':
     args = parser.parse_args()
     region = args.region
     json_path = 'gedi_sample_json/'+region+'_json.geojson'
-    n_geometries = len(gpd.read_file(json_path))
-    pool = Pool(processes=n_geometries)
-    for i in range(n_geometries):
-        pool.apply_async(gedi_download, args=(region, i))
-    print('test')
-    pool.close()
-    pool.join()
-    # gedi_client.concatcsv('subsets/*.csv')
+    gedi_client = GEDIClient()
+    file_url_list = gedi_client.query_with_json(json_path, 0)
+    gedi_client.download(json_path, file_url_list, region, 0)
+    # n_geometries = len(gpd.read_file(json_path))
+    # pool = Pool(processes=n_geometries)
+    # for i in range(n_geometries):
+    #     pool.apply_async(gedi_download, args=(region, i))
+    # print('test')
+    # pool.close()
+    # pool.join()
+    # gedi_client.concatcsv('subsets/'+region+'/*.csv', region)
 
