@@ -239,18 +239,18 @@ class gedi:
                     array[:, :, 6+i]=np.where(rh > rh_mean+2*rh_std, np.nan, rh)
                 output_array = np.zeros((array.shape[0], array.shape[1], 10)).astype(np.float32)
                 # print(index)
-                agbd_l2a = params_fetching.get_agbd(array[:, :, 4:])
-                agbd_l2a = np.where(agbd_l2a==-1, np.nan, agbd_l2a)
+                # agbd_l2a = params_fetching.get_agbd(array[:, :, 4:])
+                # agbd_l2a = np.where(agbd_l2a==-1, np.nan, agbd_l2a)
                 for i in range(3):
                     output_array[:, :, i] = self.remove_outliers(array[:, :, i], 1)
                     output_array[:, :, i] = np.nan_to_num(output_array[:, :, i])
                 if random_blind:
-                    output_array[:, :, 4:9] = np.nan_to_num(self.random_blind(array[:, :, 6:11]))
+                    output_array[:, :, 4:9] = np.nan_to_num(self.random_blind(array[:, :, 6:11], 0.75))
                 else:
                     output_array[:, :, 4:9] = np.nan_to_num(array[:, :, 6:])
                 # output_array[:, :, 9] = np.where(agbd!=-1, np.nan_to_num(array[:, :, 5]/100, nan=-1), -1)
                 agbd = np.where(array[:, :, 11]==-9999, np.nan, array[:, :, 11]/100)
-                # agbd = np.where(array[:, :, 3] == 10, agbd, np.nan)
+
                 output_array[:, :, 9] = np.nan_to_num(agbd, nan=-1)
                 print(index)
                 output_array[:, :, 3] = array[:, :, 3]
@@ -260,7 +260,7 @@ class gedi:
                 dataset_list.append(output_array)
 
                 if index % 10==0:
-                    break
+                    # break
                     print('{:.2f}% completed'.format(index*100/len(file_list)))
 
             dataset = np.concatenate(dataset_list, axis=0)
@@ -289,11 +289,11 @@ class gedi:
         plt.title('Correlation with ' + str(nchannels) + ' channels. r-squared: {0:.2f}'.format(r_value ** 2))
         x = np.linspace(0, 400, 500)
         y = np.linspace(0, 400, 500)
-        plt.scatter(x=x_scatter[x_scatter > 0] * 100, y=y_scatter[x_scatter > 0] * 100, c='g', s=0.01)
+        plt.scatter(x=x_scatter[np.logical_and(x_scatter > 0, y_scatter<600)] * 100, y=y_scatter[np.logical_and(x_scatter > 0, y_scatter<600)] * 100, c='g', s=0.01)
         plt.plot(x, y, c='r')
         # plt.plot(x, intercept + x * slope, 'r')
-        # plt.xlim([0, 1000])
-        # plt.ylim([0, 1000])
+        plt.xlim([0, 600])
+        plt.ylim([0, 600])
         plt.xlabel("AGBD Groundtruth")
         plt.ylabel("AGBD Predicted")
         plt.show()
@@ -325,8 +325,8 @@ class gedi:
             self.write_tiff(file_dir.replace('proj4_gedi_palsar', 'recon'), agbd_pred.transpose((2,0,1)), pf)
             print('successfully reconstruct agbd predicted')
 
-    def random_blind(self, array):
-        sample_filter = np.random.binomial(1, 1, array.shape)
+    def random_blind(self, array, percentage):
+        sample_filter = np.random.binomial(1, percentage, array.shape)
         filter = np.logical_and(sample_filter == 1, np.logical_not(np.isnan(array)))
         return np.where(filter, array, np.nan)
 
