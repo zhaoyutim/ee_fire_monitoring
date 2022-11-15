@@ -21,8 +21,8 @@ if __name__=='__main__':
     region = args.region
     json_path = 'gedi_sample_json/'+region+'_json.geojson'
     gedi_client = GEDIClient()
-    file_url_list = gedi_client.query_with_json(json_path, 0)
-    gedi_client.download(json_path, file_url_list, region, 0)
+    file_url_list, total_granules = gedi_client.query_with_json(json_path, 0)
+    gedi_client.download(json_path, file_url_list, region, 0, total_granules)
     # n_geometries = len(gpd.read_file(json_path))
     # pool = Pool(processes=n_geometries)
     # for i in range(n_geometries):

@@ -15,9 +15,9 @@ class ParamsFetching:
                            8:"ebt_af", 9:"ebt_au", 10:"dbt_eu", 11: "dbt", 12: "ebt_sa", 13: "ebt", 14: "dbt_na",#EBT
                            15: "ent", 16: "ent_au", 17: "ent_eu", 18: "ent", 19: "ent", 20: "ent", 21: "ent_na",#ENT
                            22: "ent", 23: "ent_au", 24: "ent_eu", 25: "ent", 26: "ent", 27: "ent", 28: "ent_na",#DNT
-                           29: "gsw", 30: "gsw_auoc", 31: "gsw", 32: "gsw", 33: "gsw", 34: "gsw", 35: "gsw"#GSW
+                           29: "gsw", 30: "gsw_auoc", 31: "gsw", 32: "gsw", 33: "gsw", 34: "gsw", 35: "gsw" #GSW
                            }
-        self.rh_index_dict = {40: 1, 50: 2, 60: 3, 70: 4, 98: 5, 0: -1}
+        self.rh_index_dict = {40: 2, 50: 3, 60: 4, 70: 5, 98: 6, 0: -1}
 
     def get_params(self, stratum_num):
         params = self.config.get(self.stratum_dict[stratum_num])
@@ -33,14 +33,14 @@ class ParamsFetching:
             params = self.config.get(self.stratum_dict[ps_id])
             rh1 = params.get('c_rh')
             rh2 = params.get('d_rh')
-            i1 = self.rh_index_dict[rh1]+1
+            i1 = self.rh_index_dict[rh1]
             rh1_masked_by_ps = np.where(ps_array == ps_id, array[:, :, i1], np.nan)
             if rh2 != 0:
-                i2 = self.rh_index_dict[rh2] + 1
+                i2 = self.rh_index_dict[rh2]
                 rh2_masked_by_ps = np.where(ps_array == ps_id, array[:, :, i2], np.nan)
-                if ps_id=='gsw_auoc':
+                if ps_id==30:
                     rh3 = params.get('e_rh')
-                    i3 = self.rh_index_dict[rh3] + 1
+                    i3 = self.rh_index_dict[rh3]
                     rh3_masked_by_ps = np.where(ps_array == ps_id, array[:, :, i3], np.nan)
                     agbd_ps = params.get('a') * pow(params.get('b') +
                                                     params.get('c') * np.sqrt(rh1_masked_by_ps+100) +
@@ -53,6 +53,23 @@ class ParamsFetching:
                 agbd_ps = params.get('a') * pow(params.get('b') + params.get('c') * np.sqrt(rh1_masked_by_ps + 100), 2) /100
             agbd += np.where(np.isnan(agbd_ps), 0, agbd_ps)
             agbd = np.where(agbd==0, -1, agbd)
+            agbd_l4a = array[:,:,-1]
+            agbd_l4a = np.where(agbd_l4a == -9999, np.nan, agbd_l4a / 100)
+            agbd_l4a = np.nan_to_num(agbd_l4a, nan=-1)
+
+            x_scatter = agbd[np.logical_and(agbd != -1, agbd_l4a != -1)]
+            y_scatter = agbd_l4a[np.logical_and(agbd != -1, agbd_l4a != -1)]
+            x = np.linspace(0, 400, 500)
+            y = np.linspace(0, 400, 500)
+            import matplotlib.pyplot as plt
+            plt.scatter(x=x_scatter * 100,
+                        y=y_scatter * 100, c='g', s=1)
+            plt.plot(x, y, c='r')
+            plt.xlim([0, 600])
+            plt.ylim([0, 600])
+            plt.ylabel("AGBD l4a")
+            plt.xlabel("AGBD l2a derived")
+            plt.show()
         return agbd
 
 if __name__=='__main__':

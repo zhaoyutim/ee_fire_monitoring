@@ -89,9 +89,9 @@ class GEDIClient:
         total_granules = len(opendap_arr)
         print("Total granules found: ", total_granules)
         print(opendap_arr[:3])
-        return opendap_arr
+        return opendap_arr, total_granules
 
-    def download(self, json_path, file_url_list, region, id):
+    def download(self, json_path, file_url_list, region, id, total_granules):
         aca = gpd.read_file(json_path)
         aca = aca.iloc[[id]]
         aca.crs = "EPSG:4326"
@@ -115,11 +115,11 @@ class GEDIClient:
 
         c = 0
         for i, g_name in enumerate(file_url_list):
-            print(g_name, i)
+            print(g_name, i, total_granules)
             c += 1
             # loop over all beams
             for beam in beams:
-                print(beam)
+                # print(beam)
                 # 1. Retrieving lat, lon coordinates for the file
                 hyrax_url = f"{g_name}.dap.nc4?dap4.ce=/{beam}/lon_lowestmode;/{beam}/lat_lowestmode"
                 r = session.get(hyrax_url)

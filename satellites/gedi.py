@@ -26,7 +26,7 @@ class gedi:
         composite = ee.Image([sarHh_log, sarHv_log, sarhvhh])
         lc = ee.ImageCollection("ESA/WorldCover/v100").first()
         l4b = ee.Image('LARSE/GEDI/GEDI04_B_002').select(['PS', 'MU'])
-        l4a_table = ee.FeatureCollection("projects/ee-zhaoyutim/assets/gedil4a_custom_region")
+        l4a_table = ee.FeatureCollection("projects/ee-zhaoyutim/assets/conbine_csv")
         if custom_region == None:
             for region_id in region_ids:
                 if mode=='test':
@@ -106,7 +106,10 @@ class gedi:
                 'GEDI-PALSAR Image Export:' + 'GEDI_SAMPLE_' + 'custom_region' + str(year)))
 
     def qualityMask(self, img):
-        return img.updateMask(img.select('quality_flag').eq(1)).updateMask(img.select('degrade_flag').eq(0))
+        return img.updateMask(img.select('quality_flag').eq(1)).updateMask(img.select('degrade_flag').eq(0))\
+            .updateMask(img.select('sensitivity').lt(0.95))\
+            .updateMask(img.select('sensitivity').gt(0.90))\
+            .updateMask(img.select('solar_elevation').lt(0))
 
     def download_to_local_proj4(self, create_time='2022-06-18'):
         storage_client = storage.Client()
@@ -218,7 +221,7 @@ class gedi:
             if year == 2019:
                 path = os.path.join('proj4_gedi_palsar', region_id.upper(), '*.tif')
             else:
-                path = os.path.join('proj4_gedi_palsar', region_id.upper()+str(year), '*.tif')
+                path = os.path.join('proj4_gedi_palsar', region_id.upper()+str(year), 'year2020class_DBT_NA_00000000000-0000003840.tif')
             file_list = glob(path)
             dataset_list = []
             print('region_id:', region_id)
@@ -230,7 +233,7 @@ class gedi:
                     continue
                 array, _ = self.read_tiff(file)
                 index += 1
-                if array.shape[0]!=1280 or array.shape[1]!=1280:
+                if array.shape[0]!=1280 or array.shape[1]!=1280 or array.shape[2]!=12:
                     continue
                 for i in range(5):
                     rh = array[:, :, 6+i]
@@ -239,8 +242,9 @@ class gedi:
                     array[:, :, 6+i]=np.where(rh > rh_mean+2*rh_std, np.nan, rh)
                 output_array = np.zeros((array.shape[0], array.shape[1], 10)).astype(np.float32)
                 # print(index)
-                # agbd_l2a = params_fetching.get_agbd(array[:, :, 4:])
-                # agbd_l2a = np.where(agbd_l2a==-1, np.nan, agbd_l2a)
+                agbd_l2a = params_fetching.get_agbd(array[:, :, 4:])
+                agbd_l2a = np.where(agbd_l2a==-1, np.nan, agbd_l2a)
+
                 for i in range(3):
                     output_array[:, :, i] = self.remove_outliers(array[:, :, i], 1)
                     output_array[:, :, i] = np.nan_to_num(output_array[:, :, i])
@@ -250,8 +254,8 @@ class gedi:
                     output_array[:, :, 4:9] = np.nan_to_num(array[:, :, 6:])
                 # output_array[:, :, 9] = np.where(agbd!=-1, np.nan_to_num(array[:, :, 5]/100, nan=-1), -1)
                 agbd = np.where(array[:, :, 11]==-9999, np.nan, array[:, :, 11]/100)
-
-                output_array[:, :, 9] = np.nan_to_num(agbd, nan=-1)
+                agbd = np.nan_to_num(agbd, nan=-1)
+                output_array[:, :, 9] = agbd
                 print(index)
                 output_array[:, :, 3] = array[:, :, 3]
                 if np.nanmean(output_array[:, :, 9])==-1:
