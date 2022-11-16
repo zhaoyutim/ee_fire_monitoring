@@ -40,9 +40,9 @@ def get_dateset_gedi(batch_size, nchannels):
     #     x_train = np.concatenate((x_train, np.load('/geoinfo_vol1/zhao2/proj4_dataset/proj4_train_af' + '.npy').astype(np.float32)), axis=0)
     #     x_train = np.concatenate((x_train, np.load('/geoinfo_vol1/zhao2/proj4_dataset/proj4_train_sas' + '.npy').astype(np.float32)), axis=0)
     #     x_train = np.concatenate((x_train, np.load('/geoinfo_vol1/zhao2/proj4_dataset/proj4_train_nas' + '.npy').astype(np.float32)), axis=0)
-    y_train = x_train[:, :, :, 9]
-    y_train = np.where(y_train > 5, -1, y_train)
-    y_train = np.where(y_train < 0, -1, y_train)
+    y_train = x_train[:, :, :, 7:9]
+    y_train = np.where(y_train==0, -1, y_train)
+    # y_train = np.where(y_train < 0, -1, y_train)
     if nchannels==6:
         x_train, x_val, y_train, y_val = train_test_split(np.nan_to_num(x_train[:, :, :, 3:9]), y_train, test_size=0.2, random_state=0)
     else:
@@ -67,12 +67,12 @@ def get_dateset_gedi(batch_size, nchannels):
 
     return train_dataset, val_dataset, steps_per_epoch, validation_steps
 
-def masked_mse(y_true, y_pred):
+def masked_rmse(y_true, y_pred):
     y_true = tf.reshape(y_true, (batch_size, -1))
     y_pred = tf.reshape(y_pred, (batch_size, -1))
     mask_true = K.cast(K.not_equal(y_true, -1), K.floatx())
     masked_squared_error = K.square(mask_true * (y_true - y_pred))
-    masked_mse = K.mean(K.sum(masked_squared_error, axis=-1) / (K.sum(mask_true, axis=-1) + K.epsilon()))
+    masked_mse = K.sqrt(K.mean(K.sum(masked_squared_error, axis=-1) / (K.sum(mask_true, axis=-1) + K.epsilon())))
     return masked_mse
 
 def masked_mae(y_true, y_pred):
@@ -108,7 +108,7 @@ def create_model_cpu(model_name, backbone, learning_rate, nchannels):
         if backbone == 'None':
             basemodel = Unet(input_shape=(64, 64, 3), encoder_weights='imagenet', activation='relu')
         else:
-            basemodel = Unet(backbone, input_shape=(64, 64, 3), encoder_weights='imagenet', activation='relu')
+            basemodel = Unet(backbone, input_shape=(64, 64, 3), encoder_weights='imagenet', activation='relu', classes=2)
         output = basemodel(conv1)
         model = tf.keras.Model(input, output, name=model_name)
 
@@ -128,7 +128,7 @@ def create_model_cpu(model_name, backbone, learning_rate, nchannels):
         output_resize = tf.keras.layers.Resizing(256,256)(output)
         model = tf.keras.Model(input, output_resize, name=model_name)
     optimizer = tf.optimizers.SGD(learning_rate=learning_rate)
-    model.compile(optimizer, loss=masked_mse, metrics= masked_mse)
+    model.compile(optimizer, loss=masked_rmse, metrics= masked_rmse)
     return model
 
 def create_model_gpu(model_name, backbone, learning_rate, nchannels):
@@ -167,7 +167,7 @@ def create_model_gpu(model_name, backbone, learning_rate, nchannels):
             output_resize = tf.keras.layers.Resizing(256,256)(output)
             model = tf.keras.Model(input, output_resize, name=model_name)
     optimizer = tf.optimizers.SGD(learning_rate=learning_rate)
-    model.compile(optimizer, loss=masked_mse, metrics= masked_mse)
+    model.compile(optimizer, loss=masked_rmse, metrics= masked_rmse)
     return model
 
 if __name__=='__main__':
@@ -189,6 +189,7 @@ if __name__=='__main__':
         model = create_model_gpu(model_name, backbone, learning_rate, nchannels)
     else:
         model = create_model_cpu(model_name, backbone, learning_rate, nchannels)
+    model.summary()
     MAX_EPOCHS = 100
     options = tf.data.Options()
     options.experimental_distribute.auto_shard_policy = tf.data.experimental.AutoShardPolicy.DATA

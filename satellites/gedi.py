@@ -221,7 +221,7 @@ class gedi:
             if year == 2019:
                 path = os.path.join('proj4_gedi_palsar', region_id.upper(), '*.tif')
             else:
-                path = os.path.join('proj4_gedi_palsar', region_id.upper()+str(year), 'year2020class_DBT_NA_00000000000-0000003840.tif')
+                path = os.path.join('proj4_gedi_palsar', region_id.upper()+str(year), '*.tif')
             file_list = glob(path)
             dataset_list = []
             print('region_id:', region_id)
@@ -267,7 +267,9 @@ class gedi:
                     # break
                     print('{:.2f}% completed'.format(index*100/len(file_list)))
 
+
             dataset = np.concatenate(dataset_list, axis=0)
+
             np.save('dataset/proj4_train_'+region_id+str(year)+mode+'.npy', dataset)
             print('finish')
 

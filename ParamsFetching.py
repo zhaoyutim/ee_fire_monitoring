@@ -13,7 +13,7 @@ class ParamsFetching:
                             # africa    australia   europe  n-asia   s-america  s-asia n-america
         self.stratum_dict={1:"dbt_af", 2:"ebt_au", 3:"dbt_eu", 4:"dbt", 5:"ebt_sa", 6:"ebt", 7:"dbt_na",#DBT
                            8:"ebt_af", 9:"ebt_au", 10:"dbt_eu", 11: "dbt", 12: "ebt_sa", 13: "ebt", 14: "dbt_na",#EBT
-                           15: "ent", 16: "ent_au", 17: "ent_eu", 18: "ent", 19: "ent", 20: "ent", 21: "ent_na",#ENT
+                           15: "ent", 16: "ent_au", 17: "ent_eu", 18: "ent", 19: "ent", 20: "ent", 21: "ent_eu",#ENT
                            22: "ent", 23: "ent_au", 24: "ent_eu", 25: "ent", 26: "ent", 27: "ent", 28: "ent_na",#DNT
                            29: "gsw", 30: "gsw_auoc", 31: "gsw", 32: "gsw", 33: "gsw", 34: "gsw", 35: "gsw" #GSW
                            }
@@ -52,24 +52,24 @@ class ParamsFetching:
             else:
                 agbd_ps = params.get('a') * pow(params.get('b') + params.get('c') * np.sqrt(rh1_masked_by_ps + 100), 2) /100
             agbd += np.where(np.isnan(agbd_ps), 0, agbd_ps)
-            agbd = np.where(agbd==0, -1, agbd)
-            agbd_l4a = array[:,:,-1]
-            agbd_l4a = np.where(agbd_l4a == -9999, np.nan, agbd_l4a / 100)
-            agbd_l4a = np.nan_to_num(agbd_l4a, nan=-1)
-
-            x_scatter = agbd[np.logical_and(agbd != -1, agbd_l4a != -1)]
-            y_scatter = agbd_l4a[np.logical_and(agbd != -1, agbd_l4a != -1)]
-            x = np.linspace(0, 400, 500)
-            y = np.linspace(0, 400, 500)
-            import matplotlib.pyplot as plt
-            plt.scatter(x=x_scatter * 100,
-                        y=y_scatter * 100, c='g', s=1)
-            plt.plot(x, y, c='r')
-            plt.xlim([0, 600])
-            plt.ylim([0, 600])
-            plt.ylabel("AGBD l4a")
-            plt.xlabel("AGBD l2a derived")
-            plt.show()
+        agbd = np.where(agbd==0, -1, agbd)
+        # agbd_l4a = array[:, :, -1]
+        # agbd_l4a = np.where(agbd_l4a == -9999, np.nan, agbd_l4a / 100)
+        # agbd_l4a = np.nan_to_num(agbd_l4a, nan=-1)
+        #
+        # x_scatter = agbd[np.logical_and(agbd != -1, agbd_l4a != -1)]
+        # y_scatter = agbd_l4a[np.logical_and(agbd != -1, agbd_l4a != -1)]
+        # # x = np.linspace(0, 400, 500)
+        # # y = np.linspace(0, 400, 500)
+        # import matplotlib.pyplot as plt
+        # plt.scatter(x=x_scatter * 100,
+        #             y=y_scatter * 100, c='g', s=1)
+        # # plt.plot(x, y, c='r')
+        # plt.xlim([0, 600])
+        # plt.ylim([0, 600])
+        # plt.ylabel("AGBD l4a")
+        # plt.xlabel("AGBD l2a derived")
+        # plt.show()
         return agbd
 
 if __name__=='__main__':
