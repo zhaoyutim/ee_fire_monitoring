@@ -75,6 +75,14 @@ def masked_rmse(y_true, y_pred):
     masked_mse = K.sqrt(K.mean(K.sum(masked_squared_error, axis=-1) / (K.sum(mask_true, axis=-1) + K.epsilon())))
     return masked_mse
 
+def masked_mse(y_true, y_pred):
+    y_true = tf.reshape(y_true, (batch_size, -1))
+    y_pred = tf.reshape(y_pred, (batch_size, -1))
+    mask_true = K.cast(K.not_equal(y_true, -1), K.floatx())
+    masked_squared_error = K.square(mask_true * (y_true - y_pred))
+    masked_mse = K.mean(K.sum(masked_squared_error, axis=-1) / (K.sum(mask_true, axis=-1) + K.epsilon()))
+    return masked_mse
+
 def masked_mae(y_true, y_pred):
     y_true = tf.reshape(y_true, (batch_size, -1))
     y_pred = tf.reshape(y_pred, (batch_size, -1))
@@ -127,47 +135,12 @@ def create_model_cpu(model_name, backbone, learning_rate, nchannels):
         output = basemodel(conv1)
         output_resize = tf.keras.layers.Resizing(256,256)(output)
         model = tf.keras.Model(input, output_resize, name=model_name)
-    optimizer = tf.optimizers.SGD(learning_rate=learning_rate)
-    model.compile(optimizer, loss=masked_rmse, metrics= masked_rmse)
     return model
 
 def create_model_gpu(model_name, backbone, learning_rate, nchannels):
     strategy = tf.distribute.MirroredStrategy()
     with strategy.scope():
-        if model_name == 'fpn':
-            input = tf.keras.Input(shape=(None, None, 3))
-            conv1 = tf.keras.layers.Conv2D(3, 3, activation = 'linear', padding = 'same', kernel_initializer = 'he_normal')(input)
-            basemodel = FPN(backbone, encoder_weights='imagenet', activation='relu', classes=1)
-            output = basemodel(conv1)
-            model = tf.keras.Model(input, output, name=model_name)
-
-        elif model_name == 'unet':
-            input = tf.keras.Input(shape=(64, 64, nchannels))
-            conv1 = tf.keras.layers.Conv2D(3, 3, activation = 'linear', padding = 'same', kernel_initializer = 'he_normal')(input)
-            if backbone == 'None':
-                basemodel = Unet(input_shape=(64, 64, 3), encoder_weights='imagenet', activation='relu')
-            else:
-                basemodel = Unet(backbone, input_shape=(64, 64, 3), encoder_weights='imagenet', activation='relu')
-            output = basemodel(conv1)
-            model = tf.keras.Model(input, output, name=model_name)
-
-        elif model_name == 'linknet':
-            input = tf.keras.Input(shape=(None, None, 3))
-            conv1 = tf.keras.layers.Conv2D(3, 3, activation = 'linear', padding = 'same', kernel_initializer = 'he_normal')(input)
-            basemodel = Linknet(backbone, encoder_weights='imagenet', activation='relu', classes=1)
-            output = basemodel(conv1)
-            model = tf.keras.Model(input, output, name=model_name)
-
-        elif model_name == 'pspnet':
-            input = tf.keras.Input(shape=(None, None, 3))
-            input_resize = tf.keras.layers.Resizing(384,384)(input)
-            conv1 = tf.keras.layers.Conv2D(3, 3, activation = 'linear', padding = 'same', kernel_initializer = 'he_normal')(input_resize)
-            basemodel = PSPNet(backbone, activation='relu', classes=1)
-            output = basemodel(conv1)
-            output_resize = tf.keras.layers.Resizing(256,256)(output)
-            model = tf.keras.Model(input, output_resize, name=model_name)
-    optimizer = tf.optimizers.SGD(learning_rate=learning_rate)
-    model.compile(optimizer, loss=masked_rmse, metrics= masked_rmse)
+        model = create_model_cpu(model_name, backbone, learning_rate, nchannels)
     return model
 
 if __name__=='__main__':
@@ -190,6 +163,8 @@ if __name__=='__main__':
     else:
         model = create_model_cpu(model_name, backbone, learning_rate, nchannels)
     model.summary()
+    optimizer = tf.optimizers.SGD(learning_rate=learning_rate)
+    model.compile(optimizer, loss=masked_mse, metrics= masked_mse)
     MAX_EPOCHS = 100
     options = tf.data.Options()
     options.experimental_distribute.auto_shard_policy = tf.data.experimental.AutoShardPolicy.DATA

@@ -264,7 +264,7 @@ class gedi:
                 dataset_list.append(output_array)
 
                 if index % 10==0:
-                    # break
+                    break
                     print('{:.2f}% completed'.format(index*100/len(file_list)))
 
 
