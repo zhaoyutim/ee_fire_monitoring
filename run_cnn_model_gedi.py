@@ -40,7 +40,7 @@ def get_dateset_gedi(batch_size, nchannels):
     #     x_train = np.concatenate((x_train, np.load('/geoinfo_vol1/zhao2/proj4_dataset/proj4_train_af' + '.npy').astype(np.float32)), axis=0)
     #     x_train = np.concatenate((x_train, np.load('/geoinfo_vol1/zhao2/proj4_dataset/proj4_train_sas' + '.npy').astype(np.float32)), axis=0)
     #     x_train = np.concatenate((x_train, np.load('/geoinfo_vol1/zhao2/proj4_dataset/proj4_train_nas' + '.npy').astype(np.float32)), axis=0)
-    y_train = x_train[:, :, :, 7:9]
+    y_train = x_train[:, :, :, 8]
     y_train = np.where(y_train==0, -1, y_train)
     # y_train = np.where(y_train < 0, -1, y_train)
     if nchannels==6:
@@ -113,10 +113,7 @@ def create_model_cpu(model_name, backbone, learning_rate, nchannels):
     elif model_name == 'unet':
         input = tf.keras.Input(shape=(64, 64, nchannels))
         conv1 = tf.keras.layers.Conv2D(3, 3, activation = 'linear', padding = 'same', kernel_initializer = 'he_normal')(input)
-        if backbone == 'None':
-            basemodel = Unet(input_shape=(64, 64, 3), encoder_weights='imagenet', activation='relu')
-        else:
-            basemodel = Unet(backbone, input_shape=(64, 64, 3), encoder_weights='imagenet', activation='relu', classes=2)
+        basemodel = Unet(backbone, input_shape=(64, 64, 3), encoder_weights='imagenet', activation='linear', classes=1)
         output = basemodel(conv1)
         model = tf.keras.Model(input, output, name=model_name)
 

@@ -249,9 +249,9 @@ class gedi:
                     output_array[:, :, i] = self.remove_outliers(array[:, :, i], 1)
                     output_array[:, :, i] = np.nan_to_num(output_array[:, :, i])
                 if random_blind:
-                    output_array[:, :, 4:9] = np.nan_to_num(self.random_blind(array[:, :, 6:11], 0.75))
+                    output_array[:, :, 4:9] = np.nan_to_num(self.random_blind(array[:, :, 6:11], 0.75), nan=-1)
                 else:
-                    output_array[:, :, 4:9] = np.nan_to_num(array[:, :, 6:])
+                    output_array[:, :, 4:9] = np.nan_to_num(array[:, :, 6:11], nan=-1)
                 # output_array[:, :, 9] = np.where(agbd!=-1, np.nan_to_num(array[:, :, 5]/100, nan=-1), -1)
                 agbd = np.where(array[:, :, 11]==-9999, np.nan, array[:, :, 11]/100)
                 agbd = np.nan_to_num(agbd, nan=-1)
@@ -264,7 +264,7 @@ class gedi:
                 dataset_list.append(output_array)
 
                 if index % 10==0:
-                    break
+                    # break
                     print('{:.2f}% completed'.format(index*100/len(file_list)))
 
 
@@ -281,7 +281,8 @@ class gedi:
 
         if not os.path.exists('dataset_pred/'+region_id+'agbd_resnet18_unet_nchannels_'+str(nchannels)+'.npy'):
             model = create_model_cpu('unet', 'resnet18', 0.0003, nchannels=nchannels)
-            model.load_weights(model_path+str(nchannels))
+            # model.load_weights(model_path+str(nchannels))
+            model.load_weights('model/model-best.h5')
             agbd_pred = model.predict(test_array[:, :, :, :nchannels])
             # np.save('dataset_pred/'+region_id+'agbd_resnet18_unet_nchannels_'+str(nchannels)+'.npy', agbd_pred)
         else:
@@ -303,7 +304,35 @@ class gedi:
         plt.xlabel("AGBD Groundtruth")
         plt.ylabel("AGBD Predicted")
         plt.show()
+    def evaluate_and_plot_rh(self, test_array_path='dataset/proj4_train_na2020.npy', model_path='model/proj4_unet_pretrained_resnet18_nchannels_', nchannels=4):
+        import segmentation_models as sm
+        region_id='custom_region'
+        sm.set_framework('tf.keras')
+        test_array= np.load(test_array_path)
 
+        if not os.path.exists('dataset_pred/'+region_id+'agbd_resnet18_unet_nchannels_'+str(nchannels)+'.npy'):
+            model = create_model_cpu('unet', 'resnet18', 0.0003, nchannels=nchannels)
+            # model.load_weights(model_path+str(nchannels))
+            model.load_weights('model/model-best.h5')
+            agbd_pred = model.predict(test_array[:, :, :, :nchannels])
+            # np.save('dataset_pred/'+region_id+'agbd_resnet18_unet_nchannels_'+str(nchannels)+'.npy', agbd_pred)
+        else:
+            agbd_pred = np.load('dataset_pred/'+region_id+'agbd_resnet18_unet_nchannels_'+str(nchannels)+'.npy')
+        rh = test_array[:, :, :, 8]
+        rh_pred = agbd_pred[:, :, :, 1]
+        x_scatter = rh[rh != 0].flatten()
+        y_scatter = rh_pred[rh != 0].flatten()
+        from scipy import stats
+        slope, intercept, r_value, p_value, std_err = stats.linregress(x_scatter.flatten(), y_scatter.flatten())
+        res = stats.linregress(x_scatter.flatten(), y_scatter.flatten())
+        plt.title('Correlation with ' + str(nchannels) + ' channels. r-squared: {0:.2f}'.format(r_value ** 2))
+        # x = np.linspace(0, 400, 500)
+        # y = np.linspace(0, 400, 500)
+        plt.scatter(x=x_scatter, y=y_scatter, c='g', s=0.01)
+        # plt.plot(x, y, c='r')
+        plt.xlabel("RH98")
+        plt.ylabel("RH98 Predicted")
+        plt.show()
     def inference(self, path='proj4_gedi_palsar/CUSTOM_REGION2020/*.tif', random_blind=False, model_path='model/proj4_unet_pretrained_resnet18_nchannels_', nchannels=9, overlap=32):
         file_list=glob(path)
         import segmentation_models as sm
