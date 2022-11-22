@@ -27,6 +27,7 @@ class gedi:
         lc = ee.ImageCollection("ESA/WorldCover/v100").first()
         l4b = ee.Image('LARSE/GEDI/GEDI04_B_002').select(['PS', 'MU'])
         l4a_table = ee.FeatureCollection("projects/ee-zhaoyutim/assets/conbine_csv")
+        # l4a_table = ee.FeatureCollection("projects/ee-zhaoyutim/assets/gedil4a_custom_region")
         if custom_region == None:
             for region_id in region_ids:
                 if mode=='test':
@@ -61,7 +62,7 @@ class gedi:
                         description='Image Export:' + 'GEDI_PALSAR_' + region_id.upper() + mode_str + str(year)+'_CLASS_'+class_id,
                         fileNamePrefix=dir,
                         bucket='ai4wildfire',
-                        scale=25,
+                        scale=100,
                         maxPixels=1e11,
                         region=roi.geometry(),
                         fileDimensions=256*5
@@ -96,7 +97,7 @@ class gedi:
                 description='Image Export:' + 'GEDI_PALSAR_' + 'custom_region' + str(year),
                 fileNamePrefix=dir,
                 bucket='ai4wildfire',
-                scale=25,
+                scale=100,
                 maxPixels=1e11,
                 region=roi.geometry(),
                 fileDimensions=256*5
@@ -312,16 +313,16 @@ class gedi:
 
         if not os.path.exists('dataset_pred/'+region_id+'agbd_resnet18_unet_nchannels_'+str(nchannels)+'.npy'):
             model = create_model_cpu('unet', 'resnet18', 0.0003, nchannels=nchannels)
-            # model.load_weights(model_path+str(nchannels))
-            model.load_weights('model/model-best.h5')
+            model.load_weights(model_path+str(nchannels))
+            # model.load_weights('model/model-best.h5')
             agbd_pred = model.predict(test_array[:, :, :, :nchannels])
             # np.save('dataset_pred/'+region_id+'agbd_resnet18_unet_nchannels_'+str(nchannels)+'.npy', agbd_pred)
         else:
             agbd_pred = np.load('dataset_pred/'+region_id+'agbd_resnet18_unet_nchannels_'+str(nchannels)+'.npy')
         rh = test_array[:, :, :, 8]
-        rh_pred = agbd_pred[:, :, :, 1]
-        x_scatter = rh[rh != 0].flatten()
-        y_scatter = rh_pred[rh != 0].flatten()
+        rh_pred = agbd_pred[:, :, :]
+        x_scatter = rh[rh != -1].flatten()
+        y_scatter = rh_pred[rh != -1].flatten()
         from scipy import stats
         slope, intercept, r_value, p_value, std_err = stats.linregress(x_scatter.flatten(), y_scatter.flatten())
         res = stats.linregress(x_scatter.flatten(), y_scatter.flatten())

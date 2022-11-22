@@ -40,9 +40,9 @@ def get_dateset_gedi(batch_size, nchannels):
     #     x_train = np.concatenate((x_train, np.load('/geoinfo_vol1/zhao2/proj4_dataset/proj4_train_af' + '.npy').astype(np.float32)), axis=0)
     #     x_train = np.concatenate((x_train, np.load('/geoinfo_vol1/zhao2/proj4_dataset/proj4_train_sas' + '.npy').astype(np.float32)), axis=0)
     #     x_train = np.concatenate((x_train, np.load('/geoinfo_vol1/zhao2/proj4_dataset/proj4_train_nas' + '.npy').astype(np.float32)), axis=0)
-    y_train = x_train[:, :, :, 8]
-    y_train = np.where(y_train==0, -1, y_train)
-    # y_train = np.where(y_train < 0, -1, y_train)
+    y_train = x_train[:, :, :, 9]
+    # y_train = np.where(y_train==0, -1, y_train)
+    y_train = np.where(y_train > 10, -1, y_train)
     if nchannels==6:
         x_train, x_val, y_train, y_val = train_test_split(np.nan_to_num(x_train[:, :, :, 3:9]), y_train, test_size=0.2, random_state=0)
     else:
@@ -172,7 +172,7 @@ if __name__=='__main__':
     print('training in progress ')
     if platform.system() != 'Darwin':
         checkpoint = ModelCheckpoint(
-            '/geoinfo_vol1/zhao2/proj4_model/proj4_' + model_name + '_pretrained_' + backbone,
+            '/geoinfo_vol1/zhao2/proj4_model/proj4_' + model_name + '_pretrained_' + backbone +'_nchannels_'+str(nchannels),
             monitor="val_loss", mode="min", save_best_only=True, verbose=1)
     else:
         checkpoint = ModelCheckpoint(
@@ -187,7 +187,7 @@ if __name__=='__main__':
         epochs=MAX_EPOCHS,
         callbacks=[WandbCallback(), checkpoint],
     )
-    if platform.system() != 'Darwin':
-        model.save('/geoinfo_vol1/zhao2/proj4_model/proj4_'+model_name+'_pretrained_'+backbone+'_nchannels_'+str(nchannels))
-    else:
-        model.save('proj4_' + model_name + '_pretrained_' + backbone+'_nchannels_'+str(nchannels))
+    # if platform.system() != 'Darwin':
+    #     model.save('/geoinfo_vol1/zhao2/proj4_model/proj4_'+model_name+'_pretrained_'+backbone+'_nchannels_'+str(nchannels))
+    # else:
+    #     model.save('proj4_' + model_name + '_pretrained_' + backbone+'_nchannels_'+str(nchannels))
