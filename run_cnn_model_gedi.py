@@ -40,9 +40,9 @@ def get_dateset_gedi(batch_size, nchannels):
     #     x_train = np.concatenate((x_train, np.load('/geoinfo_vol1/zhao2/proj4_dataset/proj4_train_af' + '.npy').astype(np.float32)), axis=0)
     #     x_train = np.concatenate((x_train, np.load('/geoinfo_vol1/zhao2/proj4_dataset/proj4_train_sas' + '.npy').astype(np.float32)), axis=0)
     #     x_train = np.concatenate((x_train, np.load('/geoinfo_vol1/zhao2/proj4_dataset/proj4_train_nas' + '.npy').astype(np.float32)), axis=0)
-    y_train = x_train[:, :, :, 9]
+    y_train = x_train[:, :, :, 7:9]
     # y_train = np.where(y_train==0, -1, y_train)
-    y_train = np.where(y_train > 10, -1, y_train)
+    # y_train = np.where(y_train > 10, -1, y_train/100)
     if nchannels==6:
         x_train, x_val, y_train, y_val = train_test_split(np.nan_to_num(x_train[:, :, :, 3:9]), y_train, test_size=0.2, random_state=0)
     else:
@@ -102,25 +102,25 @@ def wandb_config(model_name, backbone, batch_size, learning_rate, nchannels):
       "model_name":model_name,
       "backbone": backbone
     }
-def create_model_cpu(model_name, backbone, learning_rate, nchannels):
+def create_model_cpu(model_name, backbone, learning_rate, nchannels, nclass):
     if model_name == 'fpn':
         input = tf.keras.Input(shape=(None, None, 3))
         conv1 = tf.keras.layers.Conv2D(3, 3, activation = 'linear', padding = 'same', kernel_initializer = 'he_normal')(input)
-        basemodel = FPN(backbone, encoder_weights='imagenet', activation='relu', classes=1)
+        basemodel = FPN(backbone, encoder_weights='imagenet', activation='relu', classes=nclass)
         output = basemodel(conv1)
         model = tf.keras.Model(input, output, name=model_name)
 
     elif model_name == 'unet':
         input = tf.keras.Input(shape=(64, 64, nchannels))
         conv1 = tf.keras.layers.Conv2D(3, 3, activation = 'linear', padding = 'same', kernel_initializer = 'he_normal')(input)
-        basemodel = Unet(backbone, input_shape=(64, 64, 3), encoder_weights='imagenet', activation='linear', classes=1)
+        basemodel = Unet(backbone, input_shape=(64, 64, 3), encoder_weights='imagenet', activation='linear', classes=nclass)
         output = basemodel(conv1)
         model = tf.keras.Model(input, output, name=model_name)
 
     elif model_name == 'linknet':
         input = tf.keras.Input(shape=(None, None, 3))
         conv1 = tf.keras.layers.Conv2D(3, 3, activation = 'linear', padding = 'same', kernel_initializer = 'he_normal')(input)
-        basemodel = Linknet(backbone, encoder_weights='imagenet', activation='relu', classes=1)
+        basemodel = Linknet(backbone, encoder_weights='imagenet', activation='relu', classes=nclass)
         output = basemodel(conv1)
         model = tf.keras.Model(input, output, name=model_name)
 
@@ -128,16 +128,16 @@ def create_model_cpu(model_name, backbone, learning_rate, nchannels):
         input = tf.keras.Input(shape=(None, None, 3))
         input_resize = tf.keras.layers.Resizing(384,384)(input)
         conv1 = tf.keras.layers.Conv2D(3, 3, activation = 'linear', padding = 'same', kernel_initializer = 'he_normal')(input_resize)
-        basemodel = PSPNet(backbone, activation='relu', classes=1)
+        basemodel = PSPNet(backbone, activation='relu', classes=nclass)
         output = basemodel(conv1)
         output_resize = tf.keras.layers.Resizing(256,256)(output)
         model = tf.keras.Model(input, output_resize, name=model_name)
     return model
 
-def create_model_gpu(model_name, backbone, learning_rate, nchannels):
+def create_model_gpu(model_name, backbone, learning_rate, nchannels, nclass):
     strategy = tf.distribute.MirroredStrategy()
     with strategy.scope():
-        model = create_model_cpu(model_name, backbone, learning_rate, nchannels)
+        model = create_model_cpu(model_name, backbone, learning_rate, nchannels, nclass)
     return model
 
 if __name__=='__main__':
@@ -156,9 +156,9 @@ if __name__=='__main__':
     nchannels = args.nc
     set_global_seed()
     if platform.system() != 'Darwin':
-        model = create_model_gpu(model_name, backbone, learning_rate, nchannels)
+        model = create_model_gpu(model_name, backbone, learning_rate, nchannels, 2)
     else:
-        model = create_model_cpu(model_name, backbone, learning_rate, nchannels)
+        model = create_model_cpu(model_name, backbone, learning_rate, nchannels, 2)
     model.summary()
     optimizer = tf.optimizers.SGD(learning_rate=learning_rate)
     model.compile(optimizer, loss=masked_mse, metrics= masked_mse)

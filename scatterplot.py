@@ -45,12 +45,12 @@ def main():
 def overview_backscatter(dataset='train'):
     if dataset=='train':
         land_covers = ['broadleaf', 'needle', 'grasslands', 'shrublands', 'savannas']
-        dir_palsar='palsar'
-        dir_s1='palsar_s1'
+        dir_palsar='/Volumes/yussd/data_proj3/palsar'
+        dir_s1='/Volumes/yussd/data_proj3/palsar_s1'
     else:
-        land_covers = ['broadleaf', 'needle', 'grasslands', 'shrublands', 'savannas', 'mixed']
-        dir_palsar='palsar_eva'
-        dir_s1= 's1_eva'
+        land_covers = ['savannas', 'mixed']
+        dir_palsar='/Volumes/yussd/data_proj3/palsar_eva'
+        dir_s1= '/Volumes/yussd/data_proj3/palsar_s1_eva'
     polarization = ['PALSAR HH', 'PALSAR HV', 'PALSAR HV-HH']
     polarization_s1 = ['S1 VV', 'S1 VH', 'S1 VH-VV']
     title=['(a)', '(b)', '(c)', '(d)', '(e)', '(f)']
@@ -83,14 +83,14 @@ def overview_backscatter(dataset='train'):
             unburned = np.concatenate((unburned_samples, unburned_samples_s1),axis=0)
             unburned_label = np.array([polarization[i]]*5000+[polarization_s1[i]]*5000)
             if i==0:
-                fig.add_trace(go.Box(y=burned, x=burned_label, name='Bunred', marker_color = 'indianred', showlegend=False))
-                fig.add_trace(go.Box(y=unburned, x=unburned_label, name='Unbunred', marker_color = 'lightseagreen', showlegend=False))
+                fig.add_trace(go.Box(y=burned, x=burned_label, name='Bunred', marker_color = 'indianred', showlegend=True))
+                fig.add_trace(go.Box(y=unburned, x=unburned_label, name='Unbunred', marker_color = 'lightseagreen', showlegend=True))
             else:
-                fig.add_trace(go.Box(y=burned, x=burned_label, name='Bunred', marker_color = 'indianred', showlegend=False))
-                fig.add_trace(go.Box(y=unburned, x=unburned_label, name='Unbunred', marker_color = 'lightseagreen', showlegend=False))
+                fig.add_trace(go.Box(y=burned, x=burned_label, marker_color = 'indianred', showlegend=False))
+                fig.add_trace(go.Box(y=unburned, x=unburned_label, marker_color = 'lightseagreen', showlegend=False))
             fig.update_layout(yaxis_title='Backscatter', boxmode='group', width=700, height=450, margin=dict(l=20, r=20, t=20, b=20))
         fig.write_image("svgs/"+land_cover.capitalize()+"_"+dataset+".svg")
         fig.show()
 
 if __name__=='__main__':
-    overview_backscatter('train')
+    overview_backscatter('test')

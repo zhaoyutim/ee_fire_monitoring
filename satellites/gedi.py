@@ -26,8 +26,8 @@ class gedi:
         composite = ee.Image([sarHh_log, sarHv_log, sarhvhh])
         lc = ee.ImageCollection("ESA/WorldCover/v100").first()
         l4b = ee.Image('LARSE/GEDI/GEDI04_B_002').select(['PS', 'MU'])
-        l4a_table = ee.FeatureCollection("projects/ee-zhaoyutim/assets/conbine_csv")
-        # l4a_table = ee.FeatureCollection("projects/ee-zhaoyutim/assets/gedil4a_custom_region")
+        # l4a_table = ee.FeatureCollection("projects/ee-zhaoyutim/assets/conbine_csv")
+        l4a_table = ee.FeatureCollection("projects/ee-zhaoyutim/assets/gedil4a_custom_region")
         if custom_region == None:
             for region_id in region_ids:
                 if mode=='test':
@@ -193,8 +193,8 @@ class gedi:
         return new_array
 
     def remove_outliers(self, x, outlierConstant):
-        upper_quartile = np.percentile(x, 75)
-        lower_quartile = np.percentile(x, 25)
+        upper_quartile = np.nanpercentile(x, 75)
+        lower_quartile = np.nanpercentile(x, 25)
         # print(upper_quartile, lower_quartile)
         IQR = (upper_quartile - lower_quartile) * outlierConstant
         quartileSet = (lower_quartile - IQR, upper_quartile + IQR)
@@ -203,7 +203,17 @@ class gedi:
         result = x * (x >= quartileSet[0]) * (x <= quartileSet[1])
 
         return result
-
+    def remove_outliers_nan(self, x, outlierConstant):
+        upper_quartile = np.nanpercentile(x, 75)
+        lower_quartile = np.nanpercentile(x, 25)
+        # print(upper_quartile, lower_quartile)
+        IQR = (upper_quartile - lower_quartile) * outlierConstant
+        quartileSet = (lower_quartile - IQR, upper_quartile + IQR)
+        # print(quartileSet)
+        x = np.nan_to_num(x)
+        result = x * (x >= quartileSet[0]) * (x <= quartileSet[1])
+        result = np.where(result == 0, np.nan, result)
+        return result
     def standardization(self, x):
         # scaler = preprocessing.StandardScaler().fit(x)
         # x = scaler.transform(x)
@@ -238,9 +248,11 @@ class gedi:
                     continue
                 for i in range(5):
                     rh = array[:, :, 6+i]
-                    rh_mean = np.nanmean(rh)
-                    rh_std = np.nanstd(rh)
-                    array[:, :, 6+i]=np.where(rh > rh_mean+2*rh_std, np.nan, rh)
+                    array[:, :, 6+i] = self.remove_outliers_nan(rh, 1)
+
+                    # rh_mean = np.nanmean(rh)
+                    # rh_std = np.nanstd(rh)
+                    # array[:, :, 6+i]=np.where(rh > rh_mean+2*rh_std, np.nan, rh)
                 output_array = np.zeros((array.shape[0], array.shape[1], 10)).astype(np.float32)
                 # print(index)
                 agbd_l2a = params_fetching.get_agbd(array[:, :, 4:])
@@ -268,8 +280,11 @@ class gedi:
                     # break
                     print('{:.2f}% completed'.format(index*100/len(file_list)))
 
+            if len(dataset_list)==1:
+                dataset = dataset_list[0]
+            else:
+                dataset = np.concatenate(dataset_list, axis=0)
 
-            dataset = np.concatenate(dataset_list, axis=0)
 
             np.save('dataset/proj4_train_'+region_id+str(year)+mode+'.npy', dataset)
             print('finish')
@@ -282,8 +297,8 @@ class gedi:
 
         if not os.path.exists('dataset_pred/'+region_id+'agbd_resnet18_unet_nchannels_'+str(nchannels)+'.npy'):
             model = create_model_cpu('unet', 'resnet18', 0.0003, nchannels=nchannels)
-            # model.load_weights(model_path+str(nchannels))
-            model.load_weights('model/model-best.h5')
+            model.load_weights(model_path+str(nchannels))
+            # model.load_weights('model/model-best.h5')
             agbd_pred = model.predict(test_array[:, :, :, :nchannels])
             # np.save('dataset_pred/'+region_id+'agbd_resnet18_unet_nchannels_'+str(nchannels)+'.npy', agbd_pred)
         else:
