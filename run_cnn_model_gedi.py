@@ -72,7 +72,7 @@ def masked_rmse(y_true, y_pred):
     y_pred = tf.reshape(y_pred, (batch_size, -1))
     mask_true = K.cast(K.not_equal(y_true, -1), K.floatx())
     masked_squared_error = K.square(mask_true * (y_true - y_pred))
-    masked_mse = K.sqrt(K.mean(K.sum(masked_squared_error, axis=-1) / (K.sum(mask_true, axis=-1) + K.epsilon())))
+    masked_mse = K.mean(K.sqrt(K.sum(masked_squared_error, axis=-1) / (K.sum(mask_true, axis=-1) + K.epsilon())))
     return masked_mse
 
 def masked_mse(y_true, y_pred):
@@ -161,7 +161,7 @@ if __name__=='__main__':
         model = create_model_cpu(model_name, backbone, learning_rate, nchannels, 2)
     model.summary()
     optimizer = tf.optimizers.SGD(learning_rate=learning_rate)
-    model.compile(optimizer, loss=masked_mse, metrics= masked_mse)
+    model.compile(optimizer, loss=masked_rmse, metrics= masked_mae)
     MAX_EPOCHS = 100
     options = tf.data.Options()
     options.experimental_distribute.auto_shard_policy = tf.data.experimental.AutoShardPolicy.DATA

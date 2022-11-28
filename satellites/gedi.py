@@ -327,7 +327,7 @@ class gedi:
         test_array= np.load(test_array_path)
 
         if not os.path.exists('dataset_pred/'+region_id+'agbd_resnet18_unet_nchannels_'+str(nchannels)+'.npy'):
-            model = create_model_cpu('unet', 'resnet18', 0.0003, nchannels=nchannels)
+            model = create_model_cpu('unet', 'resnet18', 0.0003, nchannels=nchannels, nclass=2)
             model.load_weights(model_path+str(nchannels))
             # model.load_weights('model/model-best.h5')
             agbd_pred = model.predict(test_array[:, :, :, :nchannels])
@@ -335,17 +335,17 @@ class gedi:
         else:
             agbd_pred = np.load('dataset_pred/'+region_id+'agbd_resnet18_unet_nchannels_'+str(nchannels)+'.npy')
         rh = test_array[:, :, :, 8]
-        rh_pred = agbd_pred[:, :, :]
-        x_scatter = rh[rh != -1].flatten()
-        y_scatter = rh_pred[rh != -1].flatten()
+        rh_pred = agbd_pred[:, :, :, 1]
+        x_scatter = rh[np.logical_and(rh != -1, test_array[:,:,:,3]==10)].flatten()
+        y_scatter = rh_pred[np.logical_and(rh != -1, test_array[:,:,:,3]==10)].flatten()
         from scipy import stats
         slope, intercept, r_value, p_value, std_err = stats.linregress(x_scatter.flatten(), y_scatter.flatten())
         res = stats.linregress(x_scatter.flatten(), y_scatter.flatten())
         plt.title('Correlation with ' + str(nchannels) + ' channels. r-squared: {0:.2f}'.format(r_value ** 2))
-        # x = np.linspace(0, 400, 500)
-        # y = np.linspace(0, 400, 500)
+        x = np.linspace(0, 20, 100)
+        y = np.linspace(0, 20, 100)
         plt.scatter(x=x_scatter, y=y_scatter, c='g', s=0.01)
-        # plt.plot(x, y, c='r')
+        plt.plot(x, y, c='r')
         plt.xlabel("RH98")
         plt.ylabel("RH98 Predicted")
         plt.show()
