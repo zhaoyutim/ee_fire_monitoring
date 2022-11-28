@@ -271,7 +271,7 @@ class gedi:
                 output_array[:, :, 9] = agbd
                 print(index)
                 output_array[:, :, 3] = array[:, :, 3]
-                if np.nanmean(output_array[:, :, 9])==-1:
+                if np.nanmean(output_array[:, :, 8])==-1:
                     continue
                 output_array = self.slice_into_small_tiles(output_array, 20)
                 dataset_list.append(output_array)
