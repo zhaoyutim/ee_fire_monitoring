@@ -29,7 +29,7 @@ def set_global_seed(seed=21):
     # Python
     random.seed(seed)
 
-def get_dateset_gedi(batch_size, nchannels):
+def get_dateset_gedi(batch_size, nchannels, norm_layer):
     if platform.system() == 'Darwin':
         x_train = np.load('dataset/proj4_train_na2020train'+'.npy').astype(np.float32)
     else:
@@ -41,7 +41,7 @@ def get_dateset_gedi(batch_size, nchannels):
     #     x_train = np.concatenate((x_train, np.load('/geoinfo_vol1/zhao2/proj4_dataset/proj4_train_sas' + '.npy').astype(np.float32)), axis=0)
     #     x_train = np.concatenate((x_train, np.load('/geoinfo_vol1/zhao2/proj4_dataset/proj4_train_nas' + '.npy').astype(np.float32)), axis=0)
     y_train = x_train[:, :, :, 7:9]
-    # y_train = np.where(y_train==0, -1, y_train)
+    y_train = np.where(y_train==-1, -1, y_train/10)
     # y_train = np.where(y_train > 10, -1, y_train/100)
     if nchannels==6:
         x_train, x_val, y_train, y_val = train_test_split(np.nan_to_num(x_train[:, :, :, 3:9]), y_train, test_size=0.2, random_state=0)
@@ -54,6 +54,7 @@ def get_dateset_gedi(batch_size, nchannels):
 
         return _generator
 
+    norm_layer.adapt(x_train)
     train_dataset = tf.data.Dataset.from_generator(make_generator(x_train, y_train),
                                                    (tf.float32, tf.float32))
     val_dataset = tf.data.Dataset.from_generator(make_generator(x_val, y_val),
@@ -65,7 +66,7 @@ def get_dateset_gedi(batch_size, nchannels):
     steps_per_epoch = x_train.shape[0]//batch_size
     validation_steps = x_train.shape[0]//batch_size
 
-    return train_dataset, val_dataset, steps_per_epoch, validation_steps
+    return train_dataset, val_dataset, steps_per_epoch, validation_steps, norm_layer
 
 def masked_rmse(y_true, y_pred):
     y_true = tf.reshape(y_true, (batch_size, -1))
@@ -103,69 +104,6 @@ def wandb_config(model_name, backbone, batch_size, learning_rate, nchannels):
       "backbone": backbone
     }
 
-class RandomResizedCrop(tf.keras.layers.Layer):
-    # taken from
-    # https://keras.io/examples/vision/nnclr/#random-resized-crops
-    def __init__(self, scale=(0.2, 1.0), ratio=(3.0/4.0, 4.0/3.0), crop_shape=(48,48)):
-        super(RandomResizedCrop, self).__init__()
-        self.scale = scale
-        self.log_ratio = (tf.math.log(ratio[0]), tf.math.log(ratio[1]))
-        self.crop_shape = crop_shape
-
-    def call(self, images):
-        batch_size = tf.shape(images)[0]
-
-        random_scales = tf.random.uniform(
-            (batch_size,),
-            self.scale[0],
-            self.scale[1]
-        )
-        random_ratios = tf.exp(tf.random.uniform(
-            (batch_size,),
-            self.log_ratio[0],
-            self.log_ratio[1]
-        ))
-
-        new_heights = tf.clip_by_value(
-            tf.sqrt(random_scales / random_ratios),
-            0,
-            1,
-        )
-        new_widths = tf.clip_by_value(
-            tf.sqrt(random_scales * random_ratios),
-            0,
-            1,
-        )
-        height_offsets = tf.random.uniform(
-            (batch_size,),
-            0,
-            1 - new_heights,
-        )
-        width_offsets = tf.random.uniform(
-            (batch_size,),
-            0,
-            1 - new_widths,
-        )
-
-        bounding_boxes = tf.stack(
-            [
-                height_offsets,
-                width_offsets,
-                height_offsets + new_heights,
-                width_offsets + new_widths,
-            ],
-            axis=1,
-        )
-        images = tf.image.crop_and_resize(
-            image=images,
-            boxes=bounding_boxes,
-            box_indices=tf.range(batch_size),
-            crop_size=self.crop_shape,
-            method='bilinear',
-        )
-
-        images = tf.image.resize(images=images, size=self.crop_shape, method='bicubic')
-        return images
 def create_model_cpu(model_name, backbone, learning_rate, nchannels, nclass, preprocessing_layer):
 
     if model_name == 'fpn':
@@ -225,9 +163,10 @@ if __name__=='__main__':
     nchannels = args.nc
     set_global_seed()
     MAX_EPOCHS = 100
-    train_dataset, val_dataset, steps_per_epoch, validation_steps = get_dateset_gedi(batch_size, nchannels)
     norm_layer = tf.keras.layers.Normalization(axis=-1)
-    norm_layer.adapt(train_dataset)
+    train_dataset, val_dataset, steps_per_epoch, validation_steps, norm_layer = get_dateset_gedi(batch_size, nchannels, norm_layer)
+
+
     preprocessing_layer = tf.keras.Sequential([norm_layer])
     if platform.system() != 'Darwin':
         model = create_model_gpu(model_name, backbone, learning_rate, nchannels, 2, preprocessing_layer)
@@ -235,7 +174,7 @@ if __name__=='__main__':
         model = create_model_cpu(model_name, backbone, learning_rate, nchannels, 2, preprocessing_layer)
     model.summary()
     optimizer = tf.optimizers.SGD(learning_rate=learning_rate)
-    model.compile(optimizer, loss=masked_rmse, metrics= masked_mae)
+    model.compile(optimizer, loss=masked_mse, metrics= masked_mae)
 
     options = tf.data.Options()
     options.experimental_distribute.auto_shard_policy = tf.data.experimental.AutoShardPolicy.DATA
