@@ -66,7 +66,7 @@ def get_dateset_gedi(batch_size, nchannels):
     steps_per_epoch = x_train.shape[0]//batch_size
     validation_steps = x_train.shape[0]//batch_size
 
-    return train_dataset, val_dataset, steps_per_epoch, validation_steps, mean, var
+    return train_dataset, val_dataset, steps_per_epoch, validation_steps
 
 def masked_rmse(y_true, y_pred):
     y_true = tf.reshape(y_true, (batch_size, -1))
@@ -178,7 +178,7 @@ if __name__=='__main__':
     nchannels = args.nc
     set_global_seed()
     MAX_EPOCHS = 100
-    train_dataset, val_dataset, steps_per_epoch, validation_steps, mean, var = get_dateset_gedi(batch_size, nchannels)
+    train_dataset, val_dataset, steps_per_epoch, validation_steps = get_dateset_gedi(batch_size, nchannels)
 
     if platform.system() != 'Darwin':
         model = create_model_gpu(model_name, backbone, learning_rate, nchannels, 2)
