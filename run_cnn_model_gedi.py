@@ -4,6 +4,7 @@ import random
 
 import numpy as np
 import segmentation_models as sm
+from keras_unet_collection import models
 import tensorflow as tf
 import tensorflow.python.keras.backend as K
 from segmentation_models import Unet, Linknet, PSPNet, FPN
@@ -29,7 +30,7 @@ def set_global_seed(seed=21):
     # Python
     random.seed(seed)
 
-def get_dateset_gedi(batch_size, nchannels, norm_layer):
+def get_dateset_gedi(batch_size, nchannels):
     if platform.system() == 'Darwin':
         x_train = np.load('dataset/proj4_train_na2020train'+'.npy').astype(np.float32)
     else:
@@ -47,14 +48,14 @@ def get_dateset_gedi(batch_size, nchannels, norm_layer):
         x_train, x_val, y_train, y_val = train_test_split(np.nan_to_num(x_train[:, :, :, 3:9]), y_train, test_size=0.2, random_state=0)
     else:
         x_train, x_val, y_train, y_val = train_test_split(np.nan_to_num(x_train[:,:,:,:nchannels]), y_train, test_size=0.2, random_state=0)
+    mean = x_train.mean(axis=0).mean(axis=0).mean(axis=0)
+    var = x_train.var(axis=0).var(axis=0).var(axis=0)
     def make_generator(inputs, labels):
         def _generator():
             for input, label in zip(inputs, labels):
                 yield input, label
 
         return _generator
-
-    norm_layer.adapt(x_train)
     train_dataset = tf.data.Dataset.from_generator(make_generator(x_train, y_train),
                                                    (tf.float32, tf.float32))
     val_dataset = tf.data.Dataset.from_generator(make_generator(x_val, y_val),
@@ -66,7 +67,7 @@ def get_dateset_gedi(batch_size, nchannels, norm_layer):
     steps_per_epoch = x_train.shape[0]//batch_size
     validation_steps = x_train.shape[0]//batch_size
 
-    return train_dataset, val_dataset, steps_per_epoch, validation_steps, norm_layer
+    return train_dataset, val_dataset, steps_per_epoch, validation_steps, mean, var
 
 def masked_rmse(y_true, y_pred):
     y_true = tf.reshape(y_true, (batch_size, -1))
@@ -107,7 +108,7 @@ def wandb_config(model_name, backbone, batch_size, learning_rate, nchannels):
 def create_model_cpu(model_name, backbone, learning_rate, nchannels, nclass, preprocessing_layer):
 
     if model_name == 'fpn':
-        input = tf.keras.Input(shape=(None, None, 3))
+        input = tf.keras.Input(shape=(None, None, nchannels))
         input = preprocessing_layer(input)
         conv1 = tf.keras.layers.Conv2D(3, 3, activation = 'linear', padding = 'same', kernel_initializer = 'he_normal')(input)
         basemodel = FPN(backbone, encoder_weights='imagenet', activation='relu', classes=nclass)
@@ -123,7 +124,7 @@ def create_model_cpu(model_name, backbone, learning_rate, nchannels, nclass, pre
         model = tf.keras.Model(input, output, name=model_name)
 
     elif model_name == 'linknet':
-        input = tf.keras.Input(shape=(None, None, 3))
+        input = tf.keras.Input(shape=(None, None, nchannels))
         input = preprocessing_layer(input)
         conv1 = tf.keras.layers.Conv2D(3, 3, activation = 'linear', padding = 'same', kernel_initializer = 'he_normal')(input)
         basemodel = Linknet(backbone, encoder_weights='imagenet', activation='relu', classes=nclass)
@@ -131,7 +132,7 @@ def create_model_cpu(model_name, backbone, learning_rate, nchannels, nclass, pre
         model = tf.keras.Model(input, output, name=model_name)
 
     elif model_name == 'pspnet':
-        input = tf.keras.Input(shape=(None, None, 3))
+        input = tf.keras.Input(shape=(None, None, nchannels))
         input = preprocessing_layer(input)
         input_resize = tf.keras.layers.Resizing(384,384)(input)
         conv1 = tf.keras.layers.Conv2D(3, 3, activation = 'linear', padding = 'same', kernel_initializer = 'he_normal')(input_resize)
@@ -139,6 +140,26 @@ def create_model_cpu(model_name, backbone, learning_rate, nchannels, nclass, pre
         output = basemodel(conv1)
         output_resize = tf.keras.layers.Resizing(256,256)(output)
         model = tf.keras.Model(input, output_resize, name=model_name)
+    elif model_name == 'swinunet':
+        input = tf.keras.Input(shape=(None, None, nchannels))
+        conv1 = tf.keras.layers.Conv2D(3, 3, activation='linear', padding='same', kernel_initializer='he_normal')(input)
+        basemodel = models.swin_unet_2d((64, 64, 3), filter_num_begin=64, n_labels=nclass, depth=4, stack_num_down=2,
+                                        stack_num_up=2,
+                                        patch_size=(2, 2), num_heads=[4, 8, 8, 8], window_size=[4, 2, 2, 2],
+                                        num_mlp=512,
+                                        output_activation='Sigmoid', shift_window=True, name='swin_unet')
+        output = basemodel(conv1)
+        model = tf.keras.Model(input, output, name=model_name)
+    elif model_name == 'transunet':
+        input = tf.keras.Input(shape=(None, None, nchannels))
+        conv1 = tf.keras.layers.Conv2D(3, 3, activation='linear', padding='same', kernel_initializer='he_normal')(input)
+        basemodel = models.transunet_2d((64, 64, 3), filter_num=[64, 128, 256, 512], n_labels=nclass, stack_num_down=2,
+                                        stack_num_up=2,
+                                        embed_dim=256, num_mlp=768, num_heads=3, num_transformer=12,
+                                        activation='ReLU', mlp_activation='GELU', output_activation='Sigmoid',
+                                        batch_norm=True, pool=True, unpool='bilinear', name='transunet')
+        output = basemodel(conv1)
+        model = tf.keras.Model(input, output, name=model_name)
     return model
 
 def create_model_gpu(model_name, backbone, learning_rate, nchannels, nclass, preprocessing_layer):
@@ -163,15 +184,12 @@ if __name__=='__main__':
     nchannels = args.nc
     set_global_seed()
     MAX_EPOCHS = 100
-    norm_layer = tf.keras.layers.Normalization(axis=-1)
-    train_dataset, val_dataset, steps_per_epoch, validation_steps, norm_layer = get_dateset_gedi(batch_size, nchannels, norm_layer)
-
-
-    preprocessing_layer = tf.keras.Sequential([norm_layer])
+    train_dataset, val_dataset, steps_per_epoch, validation_steps, mean, var = get_dateset_gedi(batch_size, nchannels)
+    norm_layer = tf.keras.layers.Normalization(axis=-1, mean=mean, variance=var)
     if platform.system() != 'Darwin':
-        model = create_model_gpu(model_name, backbone, learning_rate, nchannels, 2, preprocessing_layer)
+        model = create_model_gpu(model_name, backbone, learning_rate, nchannels, 2, norm_layer)
     else:
-        model = create_model_cpu(model_name, backbone, learning_rate, nchannels, 2, preprocessing_layer)
+        model = create_model_cpu(model_name, backbone, learning_rate, nchannels, 2, norm_layer)
     model.summary()
     optimizer = tf.optimizers.SGD(learning_rate=learning_rate)
     model.compile(optimizer, loss=masked_mse, metrics= masked_mae)
