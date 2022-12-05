@@ -48,8 +48,7 @@ def get_dateset_gedi(batch_size, nchannels):
         x_train, x_val, y_train, y_val = train_test_split(np.nan_to_num(x_train[:, :, :, 3:9]), y_train, test_size=0.2, random_state=0)
     else:
         x_train, x_val, y_train, y_val = train_test_split(np.nan_to_num(x_train[:,:,:,:nchannels]), y_train, test_size=0.2, random_state=0)
-    mean = x_train.mean(axis=0).mean(axis=0).mean(axis=0)
-    var = x_train.var(axis=0).var(axis=0).var(axis=0)
+
     def make_generator(inputs, labels):
         def _generator():
             for input, label in zip(inputs, labels):
@@ -108,7 +107,6 @@ def wandb_config(model_name, backbone, batch_size, learning_rate, nchannels):
 def create_model_cpu(model_name, backbone, learning_rate, nchannels, nclass, mean, var):
     if model_name == 'fpn':
         input = tf.keras.Input(shape=(None, None, nchannels))
-        input = tf.keras.layers.Normalization(axis=-1, mean=mean, variance=var)(input)
         conv1 = tf.keras.layers.Conv2D(3, 3, activation = 'linear', padding = 'same', kernel_initializer = 'he_normal')(input)
         basemodel = FPN(backbone, encoder_weights='imagenet', activation='relu', classes=nclass)
         output = basemodel(conv1)
@@ -116,7 +114,6 @@ def create_model_cpu(model_name, backbone, learning_rate, nchannels, nclass, mea
 
     elif model_name == 'unet':
         input = tf.keras.Input(shape=(64, 64, nchannels))
-        input = tf.keras.layers.Normalization(axis=-1, mean=mean, variance=var)(input)
         conv1 = tf.keras.layers.Conv2D(3, 3, activation = 'linear', padding = 'same', kernel_initializer = 'he_normal')(input)
         basemodel = Unet(backbone, input_shape=(64, 64, 3), encoder_weights='imagenet', activation='linear', classes=nclass)
         output = basemodel(conv1)
@@ -124,7 +121,6 @@ def create_model_cpu(model_name, backbone, learning_rate, nchannels, nclass, mea
 
     elif model_name == 'linknet':
         input = tf.keras.Input(shape=(None, None, nchannels))
-        input = tf.keras.layers.Normalization(axis=-1, mean=mean, variance=var)(input)
         conv1 = tf.keras.layers.Conv2D(3, 3, activation = 'linear', padding = 'same', kernel_initializer = 'he_normal')(input)
         basemodel = Linknet(backbone, encoder_weights='imagenet', activation='relu', classes=nclass)
         output = basemodel(conv1)
@@ -132,7 +128,6 @@ def create_model_cpu(model_name, backbone, learning_rate, nchannels, nclass, mea
 
     elif model_name == 'pspnet':
         input = tf.keras.Input(shape=(None, None, nchannels))
-        input = tf.keras.layers.Normalization(axis=-1, mean=mean, variance=var)(input)
         input_resize = tf.keras.layers.Resizing(384,384)(input)
         conv1 = tf.keras.layers.Conv2D(3, 3, activation = 'linear', padding = 'same', kernel_initializer = 'he_normal')(input_resize)
         basemodel = PSPNet(backbone, activation='relu', classes=nclass)
@@ -141,7 +136,6 @@ def create_model_cpu(model_name, backbone, learning_rate, nchannels, nclass, mea
         model = tf.keras.Model(input, output_resize, name=model_name)
     elif model_name == 'swinunet':
         input = tf.keras.Input(shape=(None, None, nchannels))
-        input = tf.keras.layers.Normalization(axis=-1, mean=mean, variance=var)(input)
         conv1 = tf.keras.layers.Conv2D(3, 3, activation='linear', padding='same', kernel_initializer='he_normal')(input)
         basemodel = models.swin_unet_2d((64, 64, 3), filter_num_begin=64, n_labels=nclass, depth=4, stack_num_down=2,
                                         stack_num_up=2,
@@ -152,7 +146,6 @@ def create_model_cpu(model_name, backbone, learning_rate, nchannels, nclass, mea
         model = tf.keras.Model(input, output, name=model_name)
     elif model_name == 'transunet':
         input = tf.keras.Input(shape=(None, None, nchannels))
-        input = tf.keras.layers.Normalization(axis=-1, mean=mean, variance=var)(input)
         conv1 = tf.keras.layers.Conv2D(3, 3, activation='linear', padding='same', kernel_initializer='he_normal')(input)
         basemodel = models.transunet_2d((64, 64, 3), filter_num=[64, 128, 256, 512], n_labels=nclass, stack_num_down=2,
                                         stack_num_up=2,
