@@ -105,11 +105,10 @@ def wandb_config(model_name, backbone, batch_size, learning_rate, nchannels):
       "backbone": backbone
     }
 
-def create_model_cpu(model_name, backbone, learning_rate, nchannels, nclass, preprocessing_layer):
-
+def create_model_cpu(model_name, backbone, learning_rate, nchannels, nclass, mean, var):
     if model_name == 'fpn':
         input = tf.keras.Input(shape=(None, None, nchannels))
-        input = preprocessing_layer(input)
+        input = tf.keras.layers.Normalization(axis=-1, mean=mean, variance=var)(input)
         conv1 = tf.keras.layers.Conv2D(3, 3, activation = 'linear', padding = 'same', kernel_initializer = 'he_normal')(input)
         basemodel = FPN(backbone, encoder_weights='imagenet', activation='relu', classes=nclass)
         output = basemodel(conv1)
@@ -117,7 +116,7 @@ def create_model_cpu(model_name, backbone, learning_rate, nchannels, nclass, pre
 
     elif model_name == 'unet':
         input = tf.keras.Input(shape=(64, 64, nchannels))
-        input = preprocessing_layer(input)
+        input = tf.keras.layers.Normalization(axis=-1, mean=mean, variance=var)(input)
         conv1 = tf.keras.layers.Conv2D(3, 3, activation = 'linear', padding = 'same', kernel_initializer = 'he_normal')(input)
         basemodel = Unet(backbone, input_shape=(64, 64, 3), encoder_weights='imagenet', activation='linear', classes=nclass)
         output = basemodel(conv1)
@@ -125,7 +124,7 @@ def create_model_cpu(model_name, backbone, learning_rate, nchannels, nclass, pre
 
     elif model_name == 'linknet':
         input = tf.keras.Input(shape=(None, None, nchannels))
-        input = preprocessing_layer(input)
+        input = tf.keras.layers.Normalization(axis=-1, mean=mean, variance=var)(input)
         conv1 = tf.keras.layers.Conv2D(3, 3, activation = 'linear', padding = 'same', kernel_initializer = 'he_normal')(input)
         basemodel = Linknet(backbone, encoder_weights='imagenet', activation='relu', classes=nclass)
         output = basemodel(conv1)
@@ -133,7 +132,7 @@ def create_model_cpu(model_name, backbone, learning_rate, nchannels, nclass, pre
 
     elif model_name == 'pspnet':
         input = tf.keras.Input(shape=(None, None, nchannels))
-        input = preprocessing_layer(input)
+        input = tf.keras.layers.Normalization(axis=-1, mean=mean, variance=var)(input)
         input_resize = tf.keras.layers.Resizing(384,384)(input)
         conv1 = tf.keras.layers.Conv2D(3, 3, activation = 'linear', padding = 'same', kernel_initializer = 'he_normal')(input_resize)
         basemodel = PSPNet(backbone, activation='relu', classes=nclass)
@@ -142,6 +141,7 @@ def create_model_cpu(model_name, backbone, learning_rate, nchannels, nclass, pre
         model = tf.keras.Model(input, output_resize, name=model_name)
     elif model_name == 'swinunet':
         input = tf.keras.Input(shape=(None, None, nchannels))
+        input = tf.keras.layers.Normalization(axis=-1, mean=mean, variance=var)(input)
         conv1 = tf.keras.layers.Conv2D(3, 3, activation='linear', padding='same', kernel_initializer='he_normal')(input)
         basemodel = models.swin_unet_2d((64, 64, 3), filter_num_begin=64, n_labels=nclass, depth=4, stack_num_down=2,
                                         stack_num_up=2,
@@ -152,6 +152,7 @@ def create_model_cpu(model_name, backbone, learning_rate, nchannels, nclass, pre
         model = tf.keras.Model(input, output, name=model_name)
     elif model_name == 'transunet':
         input = tf.keras.Input(shape=(None, None, nchannels))
+        input = tf.keras.layers.Normalization(axis=-1, mean=mean, variance=var)(input)
         conv1 = tf.keras.layers.Conv2D(3, 3, activation='linear', padding='same', kernel_initializer='he_normal')(input)
         basemodel = models.transunet_2d((64, 64, 3), filter_num=[64, 128, 256, 512], n_labels=nclass, stack_num_down=2,
                                         stack_num_up=2,
@@ -162,10 +163,10 @@ def create_model_cpu(model_name, backbone, learning_rate, nchannels, nclass, pre
         model = tf.keras.Model(input, output, name=model_name)
     return model
 
-def create_model_gpu(model_name, backbone, learning_rate, nchannels, nclass, preprocessing_layer):
+def create_model_gpu(model_name, backbone, learning_rate, nchannels, nclass, mean, var):
     strategy = tf.distribute.MirroredStrategy()
     with strategy.scope():
-        model = create_model_cpu(model_name, backbone, learning_rate, nchannels, nclass, preprocessing_layer)
+        model = create_model_cpu(model_name, backbone, learning_rate, nchannels, nclass, mean, var)
     return model
 
 if __name__=='__main__':
@@ -185,11 +186,11 @@ if __name__=='__main__':
     set_global_seed()
     MAX_EPOCHS = 100
     train_dataset, val_dataset, steps_per_epoch, validation_steps, mean, var = get_dateset_gedi(batch_size, nchannels)
-    norm_layer = tf.keras.layers.Normalization(axis=-1, mean=mean, variance=var)
+
     if platform.system() != 'Darwin':
-        model = create_model_gpu(model_name, backbone, learning_rate, nchannels, 2, norm_layer)
+        model = create_model_gpu(model_name, backbone, learning_rate, nchannels, 2, mean, var)
     else:
-        model = create_model_cpu(model_name, backbone, learning_rate, nchannels, 2, norm_layer)
+        model = create_model_cpu(model_name, backbone, learning_rate, nchannels, 2, mean, var)
     model.summary()
     optimizer = tf.optimizers.SGD(learning_rate=learning_rate)
     model.compile(optimizer, loss=masked_mse, metrics= masked_mae)
