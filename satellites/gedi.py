@@ -62,7 +62,7 @@ class gedi:
                         description='Image Export:' + 'GEDI_PALSAR_' + region_id.upper() + mode_str + str(year)+'_CLASS_'+class_id,
                         fileNamePrefix=dir,
                         bucket='ai4wildfire',
-                        scale=100,
+                        scale=50,
                         maxPixels=1e11,
                         region=roi.geometry(),
                         fileDimensions=256*5
@@ -97,7 +97,7 @@ class gedi:
                 description='Image Export:' + 'GEDI_PALSAR_' + 'custom_region' + str(year),
                 fileNamePrefix=dir,
                 bucket='ai4wildfire',
-                scale=100,
+                scale=50,
                 maxPixels=1e11,
                 region=roi.geometry(),
                 fileDimensions=256*5
@@ -141,15 +141,15 @@ class gedi:
             with rasterio.open(file_path, 'w', **profile) as dst:
                 dst.write(arr.astype(rasterio.float32))
 
-    def slice_into_small_tiles(self, array, division_factor, concat=False):
-        shape = array.shape[0]
-        new_shape = shape//division_factor
+    def slice_into_small_tiles(self, array, new_shape, concat=False):
+        shape_x = array.shape[0]
+        shape_y = array.shape[1]
+        loop_x = shape_x // new_shape
+        loop_y = shape_y // new_shape
         new_array = []
-        for i in range(division_factor):
-            for j in range(division_factor):
+        for i in range(loop_x):
+            for j in range(loop_y):
                 piece = array[new_shape*i:new_shape*(i+1), new_shape*j:new_shape*(j+1), :]
-                if np.nanmean(piece[:,:,8])==-1.0:
-                    continue
                 new_array.append(piece)
         if concat==False:
             array = np.stack(new_array, axis=0)
@@ -244,7 +244,7 @@ class gedi:
                     continue
                 array, _ = self.read_tiff(file)
                 index += 1
-                if array.shape[0]!=1280 or array.shape[1]!=1280 or array.shape[2]!=12:
+                if array.shape[0]<64 or array.shape[1]<64 or array.shape[2]!=12:
                     continue
                 for i in range(5):
                     rh = array[:, :, 6+i]
@@ -271,9 +271,7 @@ class gedi:
                 output_array[:, :, 9] = agbd
                 print(index)
                 output_array[:, :, 3] = array[:, :, 3]
-                if np.nanmean(output_array[:, :, 8])==-1:
-                    continue
-                output_array = self.slice_into_small_tiles(output_array, 20)
+                output_array = self.slice_into_small_tiles(output_array, 64)
                 dataset_list.append(output_array)
 
                 if index % 10==0:
@@ -334,10 +332,10 @@ class gedi:
             # np.save('dataset_pred/'+region_id+'agbd_resnet18_unet_nchannels_'+str(nchannels)+'.npy', agbd_pred)
         else:
             agbd_pred = np.load('dataset_pred/'+region_id+'agbd_resnet18_unet_nchannels_'+str(nchannels)+'.npy')
-        rh = test_array[:, :, :, 8]
-        rh_pred = agbd_pred[:, :, :, 1]
-        x_scatter = rh[np.logical_and(rh != -1, test_array[:,:,:,3]==10)].flatten()
-        y_scatter = rh_pred[np.logical_and(rh != -1, test_array[:,:,:,3]==10)].flatten()
+        rh = test_array[:, :, :, 7]
+        rh_pred = agbd_pred[:, :, :, 0]
+        x_scatter = rh[rh != -1].flatten()
+        y_scatter = rh_pred[rh != -1].flatten()
         from scipy import stats
         slope, intercept, r_value, p_value, std_err = stats.linregress(x_scatter.flatten(), y_scatter.flatten())
         res = stats.linregress(x_scatter.flatten(), y_scatter.flatten())
@@ -348,6 +346,18 @@ class gedi:
         plt.plot(x, y, c='r')
         plt.xlabel("RH98")
         plt.ylabel("RH98 Predicted")
+        plt.show()
+    def evaluate_and_plot_train(self, train_array_path='/Users/zhaoyu/PycharmProjects/ee_fire_monitoring/proj4_gedi_palsar/NA2020/year2020class_DBT_NA_00000000000-0000002560.tif'):
+        test_array, _ = self.read_tiff(train_array_path)
+        gamma0 = test_array[:, :, 1]
+        rh = test_array[:, :, 10]
+        x_scatter = gamma0[np.logical_not(np.isnan(rh))].flatten()
+        y_scatter = rh[np.logical_not(np.isnan(rh))].flatten()
+
+        plt.title('Correlation between gamma0 with rh')
+        plt.scatter(x=x_scatter, y=y_scatter, c='g', s=0.01)
+        plt.xlabel("Gamma0")
+        plt.ylabel("RH98")
         plt.show()
     def inference(self, path='proj4_gedi_palsar/CUSTOM_REGION2020/*.tif', random_blind=False, model_path='model/proj4_unet_pretrained_resnet18_nchannels_', nchannels=9, overlap=32):
         file_list=glob(path)

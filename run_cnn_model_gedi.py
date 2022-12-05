@@ -102,9 +102,75 @@ def wandb_config(model_name, backbone, batch_size, learning_rate, nchannels):
       "model_name":model_name,
       "backbone": backbone
     }
-def create_model_cpu(model_name, backbone, learning_rate, nchannels, nclass):
+
+class RandomResizedCrop(tf.keras.layers.Layer):
+    # taken from
+    # https://keras.io/examples/vision/nnclr/#random-resized-crops
+    def __init__(self, scale=(0.2, 1.0), ratio=(3.0/4.0, 4.0/3.0), crop_shape=(48,48)):
+        super(RandomResizedCrop, self).__init__()
+        self.scale = scale
+        self.log_ratio = (tf.math.log(ratio[0]), tf.math.log(ratio[1]))
+        self.crop_shape = crop_shape
+
+    def call(self, images):
+        batch_size = tf.shape(images)[0]
+
+        random_scales = tf.random.uniform(
+            (batch_size,),
+            self.scale[0],
+            self.scale[1]
+        )
+        random_ratios = tf.exp(tf.random.uniform(
+            (batch_size,),
+            self.log_ratio[0],
+            self.log_ratio[1]
+        ))
+
+        new_heights = tf.clip_by_value(
+            tf.sqrt(random_scales / random_ratios),
+            0,
+            1,
+        )
+        new_widths = tf.clip_by_value(
+            tf.sqrt(random_scales * random_ratios),
+            0,
+            1,
+        )
+        height_offsets = tf.random.uniform(
+            (batch_size,),
+            0,
+            1 - new_heights,
+        )
+        width_offsets = tf.random.uniform(
+            (batch_size,),
+            0,
+            1 - new_widths,
+        )
+
+        bounding_boxes = tf.stack(
+            [
+                height_offsets,
+                width_offsets,
+                height_offsets + new_heights,
+                width_offsets + new_widths,
+            ],
+            axis=1,
+        )
+        images = tf.image.crop_and_resize(
+            image=images,
+            boxes=bounding_boxes,
+            box_indices=tf.range(batch_size),
+            crop_size=self.crop_shape,
+            method='bilinear',
+        )
+
+        images = tf.image.resize(images=images, size=self.crop_shape, method='bicubic')
+        return images
+def create_model_cpu(model_name, backbone, learning_rate, nchannels, nclass, preprocessing_layer):
+
     if model_name == 'fpn':
         input = tf.keras.Input(shape=(None, None, 3))
+        input = preprocessing_layer(input)
         conv1 = tf.keras.layers.Conv2D(3, 3, activation = 'linear', padding = 'same', kernel_initializer = 'he_normal')(input)
         basemodel = FPN(backbone, encoder_weights='imagenet', activation='relu', classes=nclass)
         output = basemodel(conv1)
@@ -112,6 +178,7 @@ def create_model_cpu(model_name, backbone, learning_rate, nchannels, nclass):
 
     elif model_name == 'unet':
         input = tf.keras.Input(shape=(64, 64, nchannels))
+        input = preprocessing_layer(input)
         conv1 = tf.keras.layers.Conv2D(3, 3, activation = 'linear', padding = 'same', kernel_initializer = 'he_normal')(input)
         basemodel = Unet(backbone, input_shape=(64, 64, 3), encoder_weights='imagenet', activation='linear', classes=nclass)
         output = basemodel(conv1)
@@ -119,6 +186,7 @@ def create_model_cpu(model_name, backbone, learning_rate, nchannels, nclass):
 
     elif model_name == 'linknet':
         input = tf.keras.Input(shape=(None, None, 3))
+        input = preprocessing_layer(input)
         conv1 = tf.keras.layers.Conv2D(3, 3, activation = 'linear', padding = 'same', kernel_initializer = 'he_normal')(input)
         basemodel = Linknet(backbone, encoder_weights='imagenet', activation='relu', classes=nclass)
         output = basemodel(conv1)
@@ -126,6 +194,7 @@ def create_model_cpu(model_name, backbone, learning_rate, nchannels, nclass):
 
     elif model_name == 'pspnet':
         input = tf.keras.Input(shape=(None, None, 3))
+        input = preprocessing_layer(input)
         input_resize = tf.keras.layers.Resizing(384,384)(input)
         conv1 = tf.keras.layers.Conv2D(3, 3, activation = 'linear', padding = 'same', kernel_initializer = 'he_normal')(input_resize)
         basemodel = PSPNet(backbone, activation='relu', classes=nclass)
@@ -134,10 +203,10 @@ def create_model_cpu(model_name, backbone, learning_rate, nchannels, nclass):
         model = tf.keras.Model(input, output_resize, name=model_name)
     return model
 
-def create_model_gpu(model_name, backbone, learning_rate, nchannels, nclass):
+def create_model_gpu(model_name, backbone, learning_rate, nchannels, nclass, preprocessing_layer):
     strategy = tf.distribute.MirroredStrategy()
     with strategy.scope():
-        model = create_model_cpu(model_name, backbone, learning_rate, nchannels, nclass)
+        model = create_model_cpu(model_name, backbone, learning_rate, nchannels, nclass, preprocessing_layer)
     return model
 
 if __name__=='__main__':
@@ -155,17 +224,21 @@ if __name__=='__main__':
     learning_rate = args.lr
     nchannels = args.nc
     set_global_seed()
+    train_dataset, val_dataset, steps_per_epoch, validation_steps = get_dateset_gedi(batch_size, nchannels)
+    norm_layer = tf.keras.layers.Normalization(axis=-1)
+    norm_layer.adapt(train_dataset)
+    preprocessing_layer = tf.keras.Sequential([norm_layer])
     if platform.system() != 'Darwin':
-        model = create_model_gpu(model_name, backbone, learning_rate, nchannels, 2)
+        model = create_model_gpu(model_name, backbone, learning_rate, nchannels, 2, preprocessing_layer)
     else:
-        model = create_model_cpu(model_name, backbone, learning_rate, nchannels, 2)
+        model = create_model_cpu(model_name, backbone, learning_rate, nchannels, 2, preprocessing_layer)
     model.summary()
     optimizer = tf.optimizers.SGD(learning_rate=learning_rate)
     model.compile(optimizer, loss=masked_rmse, metrics= masked_mae)
     MAX_EPOCHS = 100
     options = tf.data.Options()
     options.experimental_distribute.auto_shard_policy = tf.data.experimental.AutoShardPolicy.DATA
-    train_dataset, val_dataset, steps_per_epoch, validation_steps = get_dateset_gedi(batch_size, nchannels)
+
     wandb_config(model_name, backbone, batch_size, learning_rate, nchannels)
     train_dataset = train_dataset.with_options(options)
     val_dataset = val_dataset.with_options(options)

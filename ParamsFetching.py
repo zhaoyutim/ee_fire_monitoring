@@ -15,7 +15,7 @@ class ParamsFetching:
                            8:"ebt_af", 9:"ebt_au", 10:"dbt_eu", 11: "dbt", 12: "ebt_sa", 13: "ebt", 14: "dbt_na",#EBT
                            15: "ent", 16: "ent_au", 17: "ent_eu", 18: "ent", 19: "ent", 20: "ent", 21: "ent_eu",#ENT
                            22: "ent", 23: "ent_au", 24: "ent_eu", 25: "ent", 26: "ent", 27: "ent", 28: "ent_na",#DNT
-                           29: "gsw", 30: "gsw_auoc", 31: "gsw", 32: "gsw", 33: "gsw", 34: "gsw", 35: "gsw" #GSW
+                           29: "gsw", 30: "gsw", 31: "gsw", 32: "gsw", 33: "gsw", 34: "gsw", 35: "gsw" #GSW
                            }
         self.rh_index_dict = {40: 2, 50: 3, 60: 4, 70: 5, 98: 6, 0: -1}
 
