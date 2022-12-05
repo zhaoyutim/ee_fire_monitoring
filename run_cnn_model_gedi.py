@@ -224,6 +224,7 @@ if __name__=='__main__':
     learning_rate = args.lr
     nchannels = args.nc
     set_global_seed()
+    MAX_EPOCHS = 100
     train_dataset, val_dataset, steps_per_epoch, validation_steps = get_dateset_gedi(batch_size, nchannels)
     norm_layer = tf.keras.layers.Normalization(axis=-1)
     norm_layer.adapt(train_dataset)
@@ -235,7 +236,7 @@ if __name__=='__main__':
     model.summary()
     optimizer = tf.optimizers.SGD(learning_rate=learning_rate)
     model.compile(optimizer, loss=masked_rmse, metrics= masked_mae)
-    MAX_EPOCHS = 100
+
     options = tf.data.Options()
     options.experimental_distribute.auto_shard_policy = tf.data.experimental.AutoShardPolicy.DATA
 
