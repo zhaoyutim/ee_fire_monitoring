@@ -104,7 +104,7 @@ def wandb_config(model_name, backbone, batch_size, learning_rate, nchannels):
       "backbone": backbone
     }
 
-def create_model_cpu(model_name, backbone, learning_rate, nchannels, nclass, mean, var):
+def create_model_cpu(model_name, backbone, learning_rate, nchannels, nclass):
     if model_name == 'fpn':
         input = tf.keras.Input(shape=(None, None, nchannels))
         conv1 = tf.keras.layers.Conv2D(3, 3, activation = 'linear', padding = 'same', kernel_initializer = 'he_normal')(input)
@@ -156,10 +156,10 @@ def create_model_cpu(model_name, backbone, learning_rate, nchannels, nclass, mea
         model = tf.keras.Model(input, output, name=model_name)
     return model
 
-def create_model_gpu(model_name, backbone, learning_rate, nchannels, nclass, mean, var):
+def create_model_gpu(model_name, backbone, learning_rate, nchannels, nclass):
     strategy = tf.distribute.MirroredStrategy()
     with strategy.scope():
-        model = create_model_cpu(model_name, backbone, learning_rate, nchannels, nclass, mean, var)
+        model = create_model_cpu(model_name, backbone, learning_rate, nchannels, nclass)
     return model
 
 if __name__=='__main__':
@@ -181,9 +181,9 @@ if __name__=='__main__':
     train_dataset, val_dataset, steps_per_epoch, validation_steps, mean, var = get_dateset_gedi(batch_size, nchannels)
 
     if platform.system() != 'Darwin':
-        model = create_model_gpu(model_name, backbone, learning_rate, nchannels, 2, mean, var)
+        model = create_model_gpu(model_name, backbone, learning_rate, nchannels, 2)
     else:
-        model = create_model_cpu(model_name, backbone, learning_rate, nchannels, 2, mean, var)
+        model = create_model_cpu(model_name, backbone, learning_rate, nchannels, 2)
     model.summary()
     optimizer = tf.optimizers.SGD(learning_rate=learning_rate)
     model.compile(optimizer, loss=masked_mse, metrics= masked_mae)
