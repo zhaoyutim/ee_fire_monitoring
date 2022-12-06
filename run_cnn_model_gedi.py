@@ -41,9 +41,9 @@ def get_dateset_gedi(batch_size, nchannels):
     #     x_train = np.concatenate((x_train, np.load('/geoinfo_vol1/zhao2/proj4_dataset/proj4_train_af' + '.npy').astype(np.float32)), axis=0)
     #     x_train = np.concatenate((x_train, np.load('/geoinfo_vol1/zhao2/proj4_dataset/proj4_train_sas' + '.npy').astype(np.float32)), axis=0)
     #     x_train = np.concatenate((x_train, np.load('/geoinfo_vol1/zhao2/proj4_dataset/proj4_train_nas' + '.npy').astype(np.float32)), axis=0)
-    y_train = x_train[:, :, :, 7:9]
-    y_train = np.where(y_train==-1, -1, y_train/10)
-    # y_train = np.where(y_train > 10, -1, y_train/100)
+    y_train = x_train[:, :, :, 9]
+    # y_train = np.where(y_train==-1, -1, y_train/10)
+    y_train = np.where(y_train > 10, -1, y_train/100)
     if nchannels==6:
         x_train, x_val, y_train, y_val = train_test_split(np.nan_to_num(x_train[:, :, :, 3:9]), y_train, test_size=0.2, random_state=0)
     else:
@@ -181,9 +181,9 @@ if __name__=='__main__':
     train_dataset, val_dataset, steps_per_epoch, validation_steps = get_dateset_gedi(batch_size, nchannels)
 
     if platform.system() != 'Darwin':
-        model = create_model_gpu(model_name, backbone, learning_rate, nchannels, 2)
+        model = create_model_gpu(model_name, backbone, learning_rate, nchannels, 1)
     else:
-        model = create_model_cpu(model_name, backbone, learning_rate, nchannels, 2)
+        model = create_model_cpu(model_name, backbone, learning_rate, nchannels, 1)
     model.summary()
     optimizer = tf.optimizers.SGD(learning_rate=learning_rate)
     model.compile(optimizer, loss=masked_mse, metrics= masked_mae)

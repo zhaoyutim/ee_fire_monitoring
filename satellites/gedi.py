@@ -51,7 +51,7 @@ class gedi:
                         .select(['rh40', 'rh50', 'rh60', 'rh70', 'rh98']).mosaic()
                     l4a_table_i = l4a_table.filterBounds(roi.geometry())
                     l4a_table_i = l4a_table_i.reduceToImage(['agbd'], ee.Reducer.first()).rename('agbd')
-                    output = ee.Image([composite, lc, l4b, gedi, l4a_table_i])
+                    output = ee.Image([composite, lc, l4b, gedi])
                     dir = 'proj4_gedi_palsar' + '/' + region_id.upper() + str(year) + '/' + 'year'+ str(year)+ 'class_' + class_id + '_' + str(i)
                     if mode=='test':
                         mode_str=mode
@@ -62,7 +62,7 @@ class gedi:
                         description='Image Export:' + 'GEDI_PALSAR_' + region_id.upper() + mode_str + str(year)+'_CLASS_'+class_id,
                         fileNamePrefix=dir,
                         bucket='ai4wildfire',
-                        scale=50,
+                        scale=25,
                         maxPixels=1e11,
                         region=roi.geometry(),
                         fileDimensions=256*5
@@ -97,7 +97,7 @@ class gedi:
                 description='Image Export:' + 'GEDI_PALSAR_' + 'custom_region' + str(year),
                 fileNamePrefix=dir,
                 bucket='ai4wildfire',
-                scale=50,
+                scale=25,
                 maxPixels=1e11,
                 region=roi.geometry(),
                 fileDimensions=256*5
@@ -237,14 +237,16 @@ class gedi:
             dataset_list = []
             print('region_id:', region_id)
             index=0
+            break2=0
             for file in file_list:
+
                 if mode=='test' and 'Test' not in file and region_id!='custom_region':
                     continue
                 elif mode!='test' and 'Test' in file and region_id!='custom_region':
                     continue
                 array, _ = self.read_tiff(file)
                 index += 1
-                if array.shape[0]<64 or array.shape[1]<64 or array.shape[2]!=12:
+                if array.shape[0]<64 or array.shape[1]<64 or array.shape[2]!=11:
                     continue
                 for i in range(5):
                     rh = array[:, :, 6+i]
@@ -266,25 +268,43 @@ class gedi:
                 else:
                     output_array[:, :, 4:9] = np.nan_to_num(array[:, :, 6:11], nan=-1)
                 # output_array[:, :, 9] = np.where(agbd!=-1, np.nan_to_num(array[:, :, 5]/100, nan=-1), -1)
-                agbd = np.where(array[:, :, 11]==-9999, np.nan, array[:, :, 11]/100)
-                agbd = np.nan_to_num(agbd, nan=-1)
-                output_array[:, :, 9] = agbd
+                # agbd = np.where(array[:, :, 11]==-9999, np.nan, array[:, :, 11]/100)
+                # agbd = np.nan_to_num(agbd, nan=-1)
+                output_array[:, :, 9] = agbd_l2a
                 print(index)
                 output_array[:, :, 3] = array[:, :, 3]
                 output_array = self.slice_into_small_tiles(output_array, 64)
                 dataset_list.append(output_array)
+                del output_array
+                del agbd_l2a
+                del array
+                del rh
 
                 if index % 10==0:
-                    break
+                    # break
                     print('{:.2f}% completed'.format(index*100/len(file_list)))
+                    if index*100/len(file_list)>50 and break2==0:
+                        if len(dataset_list) == 1:
+                            dataset = dataset_list[0]
+                            del dataset_list
+                        else:
+                            dataset = np.concatenate(dataset_list, axis=0)
+                            del dataset_list
+                        np.save('/Volumes/yussd/proj4_train_' + region_id + str(year) + mode + '_1.npy', dataset)
+                        del dataset
+                        dataset_list = []
+                        break2=1
 
             if len(dataset_list)==1:
                 dataset = dataset_list[0]
+                del dataset_list
             else:
                 dataset = np.concatenate(dataset_list, axis=0)
+                del dataset_list
 
 
-            np.save('dataset/proj4_train_'+region_id+str(year)+mode+'.npy', dataset)
+            np.save('/Volumes/yussd/proj4_train_'+region_id+str(year)+mode+'.npy', dataset)
+            del dataset
             print('finish')
 
     def evaluate_and_plot(self, test_array_path='dataset/proj4_train_na2020.npy', model_path='model/proj4_unet_pretrained_resnet18_nchannels_', nchannels=4):
@@ -318,14 +338,14 @@ class gedi:
         plt.xlabel("AGBD Groundtruth")
         plt.ylabel("AGBD Predicted")
         plt.show()
-    def evaluate_and_plot_rh(self, test_array_path='dataset/proj4_train_na2020.npy', model_path='model/proj4_unet_pretrained_resnet18_nchannels_', nchannels=4):
+    def evaluate_and_plot_rh(self, test_array_path='dataset/proj4_train_na2020.npy', model_path='model/proj4_swinunet_pretrained_resnet18_nchannels_', nchannels=4):
         import segmentation_models as sm
         region_id='custom_region'
         sm.set_framework('tf.keras')
         test_array= np.load(test_array_path)
 
-        if not os.path.exists('dataset_pred/'+region_id+'agbd_resnet18_unet_nchannels_'+str(nchannels)+'.npy'):
-            model = create_model_cpu('unet', 'resnet18', 0.0003, nchannels=nchannels, nclass=2)
+        if not os.path.exists('dataset_pred/'+region_id+'agbd_resnet18_transunet_nchannels_'+str(nchannels)+'.npy'):
+            model = create_model_cpu('swinunet', 'resnet18', 0.0003, nchannels=nchannels, nclass=2)
             model.load_weights(model_path+str(nchannels))
             # model.load_weights('model/model-best.h5')
             agbd_pred = model.predict(test_array[:, :, :, :nchannels])
@@ -342,15 +362,15 @@ class gedi:
         plt.title('Correlation with ' + str(nchannels) + ' channels. r-squared: {0:.2f}'.format(r_value ** 2))
         x = np.linspace(0, 20, 100)
         y = np.linspace(0, 20, 100)
-        plt.scatter(x=x_scatter, y=y_scatter, c='g', s=0.01)
+        plt.scatter(x=x_scatter, y=y_scatter*10, c='g', s=0.01)
         plt.plot(x, y, c='r')
         plt.xlabel("RH98")
         plt.ylabel("RH98 Predicted")
         plt.show()
     def evaluate_and_plot_train(self, train_array_path='/Users/zhaoyu/PycharmProjects/ee_fire_monitoring/proj4_gedi_palsar/NA2020/year2020class_DBT_NA_00000000000-0000002560.tif'):
         test_array, _ = self.read_tiff(train_array_path)
-        gamma0 = test_array[:, :, 1]
-        rh = test_array[:, :, 10]
+        gamma0 = test_array[:, :, 6]
+        rh = test_array[:, :, 15]
         x_scatter = gamma0[np.logical_not(np.isnan(rh))].flatten()
         y_scatter = rh[np.logical_not(np.isnan(rh))].flatten()
 
