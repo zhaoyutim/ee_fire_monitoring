@@ -27,7 +27,7 @@ class gedi:
         lc = ee.ImageCollection("ESA/WorldCover/v100").first()
         l4b = ee.Image('LARSE/GEDI/GEDI04_B_002').select(['PS', 'MU'])
         # l4a_table = ee.FeatureCollection("projects/ee-zhaoyutim/assets/conbine_csv")
-        l4a_table = ee.FeatureCollection("projects/ee-zhaoyutim/assets/gedil4a_custom_region")
+        # l4a_table = ee.FeatureCollection("projects/ee-zhaoyutim/assets/gedil4a_custom_region")
         if custom_region == None:
             for region_id in region_ids:
                 if mode=='test':
@@ -49,9 +49,8 @@ class gedi:
                         .filterDate(date_pre.difference(15, "day"), date_pre.advance(15, "day"))\
                         .map(self.qualityMask)\
                         .select(['rh40', 'rh50', 'rh60', 'rh70', 'rh98']).mosaic()
-                    l4a_table_i = l4a_table.filterBounds(roi.geometry())
-                    l4a_table_i = l4a_table_i.reduceToImage(['agbd'], ee.Reducer.first()).rename('agbd')
-                    output = ee.Image([composite, lc, l4b, gedi])
+                    agbd_l4a = ee.ImageCollection('LARSE/GEDI/GEDI04_A_002_MONTHLY').filterDate(date_pre.difference(15, "day"), date_pre.advance(15, "day")).map(self.qualityMask_l4a).select(['agbd']).mosaic()
+                    output = ee.Image([composite, lc, l4b, gedi, agbd_l4a])
                     dir = 'proj4_gedi_palsar' + '/' + region_id.upper() + str(year) + '/' + 'year'+ str(year)+ 'class_' + class_id + '_' + str(i)
                     if mode=='test':
                         mode_str=mode
@@ -88,9 +87,9 @@ class gedi:
                 .filterDate(date_pre.difference(15, "day"), date_pre.advance(15, "day"))\
                 .map(self.qualityMask)\
                 .select(['rh40', 'rh50', 'rh60', 'rh70', 'rh98']).mosaic()
-            l4a_table_i = l4a_table.filterBounds(roi.geometry())
-            l4a_table_i = l4a_table_i.reduceToImage(['agbd'], ee.Reducer.first()).rename('agbd')
-            output = ee.Image([composite, lc, l4b, gedi, l4a_table_i])
+            agbd_l4a = ee.ImageCollection('LARSE/GEDI/GEDI04_A_002_MONTHLY').filterDate(date_pre.difference(15, "day"), date_pre.advance(15, "day")).map(self.qualityMask_l4a).select(
+                ['agbd']).mosaic()
+            output = ee.Image([composite, lc, l4b, gedi, agbd_l4a])
             dir = 'proj4_gedi_palsar' + '/' + 'custom_region' + str(year) + '/' + 'year'+ str(year)
             image_task = ee.batch.Export.image.toCloudStorage(
                 image=output.toFloat(),
@@ -107,11 +106,15 @@ class gedi:
                 'GEDI-PALSAR Image Export:' + 'GEDI_SAMPLE_' + 'custom_region' + str(year)))
 
     def qualityMask(self, img):
-        return img.updateMask(img.select('quality_flag').eq(1)).updateMask(img.select('degrade_flag').eq(0))\
-            .updateMask(img.select('sensitivity').lt(0.95))\
-            .updateMask(img.select('sensitivity').gt(0.90))\
-            .updateMask(img.select('solar_elevation').lt(0))
-
+        return img.updateMask(img.select('quality_flag').eq(1)).updateMask(img.select('degrade_flag').eq(0))
+            # .updateMask(img.select('sensitivity').lt(0.95))\
+            # .updateMask(img.select('sensitivity').gt(0.90))\
+            # .updateMask(img.select('solar_elevation').lt(0))
+    def qualityMask_l4a(self, img):
+        return img.updateMask(img.select('l4_quality_flag').eq(1)).updateMask(img.select('degrade_flag').eq(0))
+            # .updateMask(img.select('sensitivity').lt(0.95)) \
+            # .updateMask(img.select('sensitivity').gt(0.90)) \
+            # .updateMask(img.select('solar_elevation').lt(0))
     def download_to_local_proj4(self, create_time='2022-06-18'):
         storage_client = storage.Client()
         bucket = storage_client.bucket('ai4wildfire')
@@ -246,7 +249,7 @@ class gedi:
                     continue
                 array, _ = self.read_tiff(file)
                 index += 1
-                if array.shape[0]<64 or array.shape[1]<64 or array.shape[2]!=11:
+                if array.shape[0]<64 or array.shape[1]<64 or array.shape[2]!=12:
                     continue
                 for i in range(5):
                     rh = array[:, :, 6+i]
@@ -264,13 +267,16 @@ class gedi:
                     output_array[:, :, i] = self.remove_outliers(array[:, :, i], 1)
                     output_array[:, :, i] = np.nan_to_num(output_array[:, :, i])
                 if random_blind:
+                    # output_array[:, :, 4:9] = np.nan_to_num(self.random_blind(array[:, :, 6:11], 0.75), nan=-1)
                     output_array[:, :, 4:9] = np.nan_to_num(self.random_blind(array[:, :, 6:11], 0.75), nan=-1)
                 else:
+                    # output_array[:, :, 4:9] = np.nan_to_num(array[:, :, 6:11], nan=-1)
                     output_array[:, :, 4:9] = np.nan_to_num(array[:, :, 6:11], nan=-1)
                 # output_array[:, :, 9] = np.where(agbd!=-1, np.nan_to_num(array[:, :, 5]/100, nan=-1), -1)
                 # agbd = np.where(array[:, :, 11]==-9999, np.nan, array[:, :, 11]/100)
                 # agbd = np.nan_to_num(agbd, nan=-1)
-                output_array[:, :, 9] = agbd_l2a
+                agbd_l4a = np.nan_to_num(array[:, :, 11], nan=-1)
+                output_array[:, :, 9] = agbd_l4a
                 print(index)
                 output_array[:, :, 3] = array[:, :, 3]
                 output_array = self.slice_into_small_tiles(output_array, 64)
@@ -283,17 +289,17 @@ class gedi:
                 if index % 10==0:
                     # break
                     print('{:.2f}% completed'.format(index*100/len(file_list)))
-                    if index*100/len(file_list)>50 and break2==0:
-                        if len(dataset_list) == 1:
-                            dataset = dataset_list[0]
-                            del dataset_list
-                        else:
-                            dataset = np.concatenate(dataset_list, axis=0)
-                            del dataset_list
-                        np.save('/Volumes/yussd/proj4_train_' + region_id + str(year) + mode + '_1.npy', dataset)
-                        del dataset
-                        dataset_list = []
-                        break2=1
+                    # if index*100/len(file_list)>50 and break2==0:
+                    #     if len(dataset_list) == 1:
+                    #         dataset = dataset_list[0]
+                    #         del dataset_list
+                    #     else:
+                    #         dataset = np.concatenate(dataset_list, axis=0)
+                    #         del dataset_list
+                    #     np.save('/Volumes/yussd/proj4_train_' + region_id + str(year) + mode + '_1.npy', dataset)
+                    #     del dataset
+                    #     dataset_list = []
+                    #     break2=1
 
             if len(dataset_list)==1:
                 dataset = dataset_list[0]
@@ -303,7 +309,7 @@ class gedi:
                 del dataset_list
 
 
-            np.save('/Volumes/yussd/proj4_train_'+region_id+str(year)+mode+'.npy', dataset)
+            np.save('dataset/proj4_train_'+region_id+str(year)+mode+'.npy', dataset)
             del dataset
             print('finish')
 
@@ -312,16 +318,17 @@ class gedi:
         region_id='custom_region'
         sm.set_framework('tf.keras')
         test_array= np.load(test_array_path)
+        agbd = test_array[:,:,:,[9]]
+        agbd = np.where(np.isnan(agbd), -1, agbd)
 
         if not os.path.exists('dataset_pred/'+region_id+'agbd_resnet18_unet_nchannels_'+str(nchannels)+'.npy'):
-            model = create_model_cpu('unet', 'resnet18', 0.0003, nchannels=nchannels)
+            model = create_model_cpu('unet', 'resnet18', 0.0003, nchannels=nchannels, nclass=1)
             model.load_weights(model_path+str(nchannels))
             # model.load_weights('model/model-best.h5')
             agbd_pred = model.predict(test_array[:, :, :, :nchannels])
             # np.save('dataset_pred/'+region_id+'agbd_resnet18_unet_nchannels_'+str(nchannels)+'.npy', agbd_pred)
         else:
             agbd_pred = np.load('dataset_pred/'+region_id+'agbd_resnet18_unet_nchannels_'+str(nchannels)+'.npy')
-        agbd = test_array[:,:,:,[9]]
         x_scatter = agbd[np.squeeze(agbd) != -1]
         y_scatter = agbd_pred[np.squeeze(agbd) != -1]
         from scipy import stats
