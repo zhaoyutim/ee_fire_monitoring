@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import rasterio
 import yaml
+from scipy import stats as st
 from sklearn import preprocessing
 
 with open("config/land_cover_id.yaml", "r", encoding="utf8") as f:
@@ -53,8 +54,10 @@ def normalization(x):
 def dataset_gen(dataset, nchannel):
     if dataset=='palsar':
         file_list = glob.glob('palsar/*/*/*.tif')
-    else:
+    elif dataset == 's1':
         file_list = glob.glob('palsar_s1/*/*/*.tif')
+    else:
+        file_list = glob.glob('rcm_train/*/*.tif')
     file_list.sort()
     dataset_train_list = []
     dataset_val_list = []
@@ -63,59 +66,83 @@ def dataset_gen(dataset, nchannel):
         print(file_name)
         fire_id = file_name.split('/')[2][:-5]
         landcover = file_name.split('/')[1]
-        th = config.get(landcover).get(int(fire_id)).get('th')
-        bbox = config.get(landcover).get(int(fire_id)).get('bbox')
+        if dataset != 'rcm':
+            th = config.get(landcover).get(int(fire_id)).get('th')
+            bbox = config.get(landcover).get(int(fire_id)).get('bbox')
         tif_array, _ = read_tiff(file_name)
 
         _, size_x, size_y = tif_array.shape
         tif_array = tif_array.transpose((1, 2, 0))
         tif_array = np.nan_to_num(tif_array)
-        data_output = np.zeros((tif_array.shape[0], tif_array.shape[1], nchannel+1))
-        if nchannel == 7:
-            for i in range(4):
-                data_output[:, :, i] = remove_outliers(tif_array[:, :, i], 1)
-                data_output[:, :, i] = np.nan_to_num(standardization(data_output[:, :, i]))
-            for i in range(3):
-                data_output[:, :, i + 4] = remove_outliers(tif_array[:, :, i + 6], 1)
-                data_output[:, :, i + 4] = np.nan_to_num(standardization(data_output[:, :, i + 4]))
-            if bbox == 1:
-                data_output[:, :, 7] = np.logical_and(tif_array[:, :, 5] > th, tif_array[:, :, 4] > 0)
-            else:
-                data_output[:, :, 7] = tif_array[:, :, 5] > th
-        elif nchannel == 4:
-            for i in range(4):
-                data_output[:, :, i] = remove_outliers(tif_array[:, :, i], 1)
-                data_output[:, :, i] = np.nan_to_num(standardization(data_output[:, :, i]))
-            if bbox == 1:
-                data_output[:, :, 4] = np.logical_and(tif_array[:, :, 5] > th, tif_array[:, :, 4] > 0)
-            else:
-                data_output[:, :, 4] = tif_array[:, :, 5] > th
-        elif nchannel == 3:
-            for i in range(3):
-                data_output[:, :, i] = remove_outliers(tif_array[:, :, i + 6], 1)
-                data_output[:, :, i] = np.nan_to_num(standardization(data_output[:, :, i]))
-            if bbox == 1:
-                data_output[:, :, 3] = np.logical_and(tif_array[:, :, 5] > th, tif_array[:, :, 4] > 0)
-            else:
-                data_output[:, :, 3] = tif_array[:, :, 5] > th
+        if np.mean(tif_array)==0:
+            print('empty array')
+            os.remove(file_name)
+            continue
+        if dataset!='rcm':
+            data_output = np.zeros((tif_array.shape[0], tif_array.shape[1], nchannel + 1))
+            if nchannel == 7:
+                for i in range(4):
+                    data_output[:, :, i] = remove_outliers(tif_array[:, :, i], 1)
+                    data_output[:, :, i] = np.nan_to_num(standardization(data_output[:, :, i]))
+                for i in range(3):
+                    data_output[:, :, i + 4] = remove_outliers(tif_array[:, :, i + 6], 1)
+                    data_output[:, :, i + 4] = np.nan_to_num(standardization(data_output[:, :, i + 4]))
+                if bbox == 1:
+                    data_output[:, :, 7] = np.logical_and(tif_array[:, :, 5] > th, tif_array[:, :, 4] > 0)
+                else:
+                    data_output[:, :, 7] = tif_array[:, :, 5] > th
+            elif nchannel == 4:
+                for i in range(4):
+                    data_output[:, :, i] = remove_outliers(tif_array[:, :, i], 1)
+                    data_output[:, :, i] = np.nan_to_num(standardization(data_output[:, :, i]))
+                if bbox == 1:
+                    data_output[:, :, 4] = np.logical_and(tif_array[:, :, 5] > th, tif_array[:, :, 4] > 0)
+                else:
+                    data_output[:, :, 4] = tif_array[:, :, 5] > th
+            elif nchannel == 3:
+                for i in range(3):
+                    data_output[:, :, i] = remove_outliers(tif_array[:, :, i + 6], 1)
+                    data_output[:, :, i] = np.nan_to_num(standardization(data_output[:, :, i]))
+                if bbox == 1:
+                    data_output[:, :, 3] = np.logical_and(tif_array[:, :, 5] > th, tif_array[:, :, 4] > 0)
+                else:
+                    data_output[:, :, 3] = tif_array[:, :, 5] > th
+        else:
+            data_output = np.zeros((tif_array.shape[0], tif_array.shape[1], nchannel + 1))
+            for i in range(5):
+                data_output[:, :, i] = np.nan_to_num(tif_array[:, :, i])
         del tif_array
         data_index_y = size_y // 256
         data_index_x = size_x // 256
         for i in range(data_index_x):
             for j in range(data_index_y):
-                if (i*data_index_y+j)<int(data_index_y*data_index_x*0.8):
+                # if (i*data_index_y+j)<int(data_index_y*data_index_x*0.8):
+                if 'slave_lake' not in file_name:
+                    if st.mode(data_output[i * 256:(i + 1) * 256, j * 256:(j + 1) * 256, 0].flatten())[0][0]==0:
+                        print('discard empty img')
+                        continue
                     dataset_train_list.append(data_output[i * 256:(i + 1) * 256, j * 256:(j + 1) * 256, :])
                 else:
+                    if st.mode(data_output[i * 256:(i + 1) * 256, j * 256:(j + 1) * 256, 0].flatten())[0][0]==0:
+                        print('discard empty img')
+                        continue
                     dataset_val_list.append(data_output[i * 256:(i + 1) * 256, j * 256:(j + 1) * 256, :])
         del data_output
     dataset_train = np.stack(dataset_train_list, axis=0)
     dataset_val = np.stack(dataset_val_list, axis=0)
+    print(dataset_train)
     if dataset=='palsar':
         np.save('dataset/proj2_train_'+str(nchannel)+'chan.npy', dataset_train)
         np.save('dataset/proj2_val_'+str(nchannel)+'chan.npy', dataset_val)
-    else:
+    elif dataset =='s1':
         np.save('dataset_s1/proj2_train_'+str(nchannel)+'chan_s1.npy', dataset_train)
         np.save('dataset_s1/proj2_val_'+str(nchannel)+'chan_s1.npy', dataset_val)
+    else:
+        for i in range(4):
+            print(dataset_train[..., i].mean())
+            print(dataset_train[..., i].std())
+        np.save('dataset_rcm/proj6_train_'+str(nchannel)+'chan_rcm.npy', dataset_train)
+        np.save('dataset_rcm/proj6_val_'+str(nchannel)+'chan_rcm.npy', dataset_val)
     return dataset_train, dataset_val
 
 

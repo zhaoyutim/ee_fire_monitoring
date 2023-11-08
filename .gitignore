@@ -23,3 +23,7 @@ config/credential.yml
 subsets
 csv
 venv
+rcm_train
+s2_viirs_train_post
+s2_viirs_train_pre
+.vscode

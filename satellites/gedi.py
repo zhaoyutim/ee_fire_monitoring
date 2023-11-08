@@ -1,7 +1,8 @@
 import datetime
 import os
 from glob import glob
-
+import plotly.express as px
+import plotly.graph_objects as go
 import ee
 import numpy as np
 import rasterio
@@ -227,7 +228,7 @@ class gedi:
         return 255 * (x - np.nanmin(x)) / (np.nanmax(x) - np.nanmin(x))
 
 
-    def generate_dataset_proj4(self, region_ids = ['na', 'sa', 'af', 'eu', 'au', 'sas', 'nas'], random_blind=False, year=2020, custom_region=None, mode='test'):
+    def generate_dataset_proj4(self, region_ids = ['na', 'sa', 'af', 'eu', 'au', 'sas', 'nas'], random_blind=False, year=2020, custom_region=None, mode='test', rb=0.5):
         params_fetching = ParamsFetching()
         if custom_region!=None:
             region_ids=['custom_region']
@@ -268,7 +269,7 @@ class gedi:
                     output_array[:, :, i] = np.nan_to_num(output_array[:, :, i])
                 if random_blind:
                     # output_array[:, :, 4:9] = np.nan_to_num(self.random_blind(array[:, :, 6:11], 0.75), nan=-1)
-                    output_array[:, :, 4:9] = np.nan_to_num(self.random_blind(array[:, :, 6:11], 0.75), nan=-1)
+                    output_array[:, :, 4:9] = np.nan_to_num(self.random_blind(array[:, :, 6:11], rb), nan=-1)
                 else:
                     # output_array[:, :, 4:9] = np.nan_to_num(array[:, :, 6:11], nan=-1)
                     output_array[:, :, 4:9] = np.nan_to_num(array[:, :, 6:11], nan=-1)
@@ -309,7 +310,7 @@ class gedi:
                 del dataset_list
 
 
-            np.save('dataset/proj4_train_'+region_id+str(year)+mode+'.npy', dataset)
+            np.save('dataset/proj4_train_'+region_id+str(year)+mode+str(rb)+'.npy', dataset)
             del dataset
             print('finish')
 
@@ -334,17 +335,21 @@ class gedi:
         from scipy import stats
         slope, intercept, r_value, p_value, std_err = stats.linregress(x_scatter.flatten(), y_scatter.flatten())
         res = stats.linregress(x_scatter.flatten(), y_scatter.flatten())
-        plt.title('Correlation with ' + str(nchannels) + ' channels. r-squared: {0:.2f}'.format(r_value ** 2))
-        x = np.linspace(0, 400, 500)
-        y = np.linspace(0, 400, 500)
-        plt.scatter(x=x_scatter[np.logical_and(x_scatter > 0, y_scatter<600)] * 100, y=y_scatter[np.logical_and(x_scatter > 0, y_scatter<600)] * 100, c='g', s=0.01)
-        plt.plot(x, y, c='r')
-        # plt.plot(x, intercept + x * slope, 'r')
-        plt.xlim([0, 600])
-        plt.ylim([0, 600])
-        plt.xlabel("AGBD Groundtruth")
-        plt.ylabel("AGBD Predicted")
-        plt.show()
+        random_id = np.random.choice(x_scatter.shape[0], 10000)
+        fig = px.scatter(x=x_scatter[random_id, 0], y=y_scatter[random_id, 0] * 100, range_x=[0, 1000], range_y=[0, 1000], trendline='ols')
+        fig.update_layout(title='Correlation with ' + str(nchannels) + ' channels. R-squared: {0:.2f}'.format(r_value ** 2), xaxis_title="AGB Groundtruth (GEDI L4A AGB)", yaxis_title="AGB Predicted")
+        fig.show()
+        # plt.title('Correlation with ' + str(nchannels) + ' channels. r-squared: {0:.2f}'.format(r_value ** 2))
+        # x = np.linspace(0, 400, 500)
+        # y = np.linspace(0, 400, 500)
+        # plt.scatter(x=x_scatter[np.logical_and(x_scatter > 0, y_scatter<600)], y=y_scatter[np.logical_and(x_scatter > 0, y_scatter<600)]*100, c='g', s=0.01)
+        # plt.plot(x, y, c='r')
+        # # plt.plot(x, intercept + x * slope, 'r')
+        # plt.xlim([0, 600])
+        # plt.ylim([0, 600])
+        # plt.xlabel("AGBD Groundtruth")
+        # plt.ylabel("AGBD Predicted")
+        # plt.show()
     def evaluate_and_plot_rh(self, test_array_path='dataset/proj4_train_na2020.npy', model_path='model/proj4_swinunet_pretrained_resnet18_nchannels_', nchannels=4):
         import segmentation_models as sm
         region_id='custom_region'
@@ -369,6 +374,7 @@ class gedi:
         plt.title('Correlation with ' + str(nchannels) + ' channels. r-squared: {0:.2f}'.format(r_value ** 2))
         x = np.linspace(0, 20, 100)
         y = np.linspace(0, 20, 100)
+
         plt.scatter(x=x_scatter, y=y_scatter*10, c='g', s=0.01)
         plt.plot(x, y, c='r')
         plt.xlabel("RH98")

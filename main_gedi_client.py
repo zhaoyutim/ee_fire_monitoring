@@ -1,8 +1,5 @@
 import argparse
-import time
-from multiprocessing import Pool
 
-import geopandas as gpd
 from GEDIClient.GEDIClient import GEDIClient
 
 def gedi_download(region, id):
